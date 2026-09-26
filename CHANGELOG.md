@@ -18,4 +18,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generated protocol code: enums, structs, client/server packets and packet factories in `eolib::protocol::net`, `eolib::protocol::pub` and `eolib::protocol::map`, plus the `eolib::protocol::net::Packet` interface.
 - `eolib/eolib.hpp` and `eolib/protocol.hpp` umbrella headers.
 - CMake package (`find_package(eolib CONFIG)`, `eolib::eolib` target), FetchContent/`add_subdirectory` support and CPack archives named `eolib-<version>-<platform>`.
+- vcpkg overlay port (`ports/eolib`).
 - Round-trip tests for the packets in `eo-captured-packets`, and pub/map file tests.

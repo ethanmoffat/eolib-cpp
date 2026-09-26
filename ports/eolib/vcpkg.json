@@ -1,0 +1,19 @@
+{
+  "name": "eolib",
+  "version-semver": "0.1.0-alpha.1",
+  "description": "Core C++ library for writing Endless Online applications",
+  "homepage": "https://github.com/ethanmoffat/eolib-cpp",
+  "license": "MIT",
+  "supports": "!uwp",
+  "dependencies": [
+    "pugixml",
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ]
+}
