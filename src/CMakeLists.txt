@@ -4,6 +4,10 @@ set(EOLIB_GENERATED_DIR "${PROJECT_BINARY_DIR}/generated")
 set(EOLIB_GENERATED_INCLUDE_DIR "${EOLIB_GENERATED_DIR}/include")
 
 set(EOLIB_RUNTIME_SOURCES
+    data/eo_reader.cpp
+    data/eo_writer.cpp
+    data/number_encoder.cpp
+    data/string_encoder.cpp
     version.cpp)
 
 add_library(eolib ${EOLIB_RUNTIME_SOURCES})

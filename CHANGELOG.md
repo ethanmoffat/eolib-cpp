@@ -9,3 +9,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Initial project structure: CMake build, `eo-protocol` and `eo-captured-packets` submodules, code style configuration.
+- `eolib::data` runtime: `EoReader` (chunked reading, slicing), `EoWriter` (string sanitization, padding), `NumberEncoder`, `StringEncoder` and `EoNumericLimits`.
+- `EolibError`, `SerializationError` and `DeserializationError` exception types.

@@ -16,7 +16,13 @@ include(GoogleTest)
 
 add_executable(
     eolib_tests
+    data/eo_reader_test.cpp
+    data/eo_writer_test.cpp
+    data/number_encoder_test.cpp
+    data/string_encoder_test.cpp
     version_test.cpp)
+
+target_include_directories(eolib_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(eolib_tests PRIVATE eolib::eolib GTest::gtest_main eolib_compiler_options)
 set_target_properties(eolib_tests PROPERTIES CXX_EXTENSIONS OFF)
