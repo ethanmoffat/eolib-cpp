@@ -8,6 +8,10 @@ set(EOLIB_RUNTIME_SOURCES
     data/eo_writer.cpp
     data/number_encoder.cpp
     data/string_encoder.cpp
+    encrypt/data_encrypter.cpp
+    encrypt/server_verifier.cpp
+    packet/packet_sequencer.cpp
+    packet/sequence_start.cpp
     version.cpp)
 
 add_library(eolib ${EOLIB_RUNTIME_SOURCES})

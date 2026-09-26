@@ -20,6 +20,11 @@ add_executable(
     data/eo_writer_test.cpp
     data/number_encoder_test.cpp
     data/string_encoder_test.cpp
+    encrypt/data_encrypter_test.cpp
+    encrypt/server_verifier_test.cpp
+    packet/packet_sequencer_test.cpp
+    packet/sequence_start_test.cpp
+    protocol/serializable_test.cpp
     version_test.cpp)
 
 target_include_directories(eolib_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
