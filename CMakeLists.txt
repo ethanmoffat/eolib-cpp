@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.18)
 
 # The numeric version is tracked in project(); pre-release identifiers (e.g. "alpha.1", "rc.2") are tracked in
 # EOLIB_VERSION_SUFFIX. Leave the suffix empty for a stable release. Both must match the release tag and CHANGELOG.md.
@@ -36,7 +36,14 @@ endif()
 
 include(EolibCompilerOptions)
 
+set(EOLIB_GENERATED_DIR "${PROJECT_BINARY_DIR}/generated")
+set(EOLIB_GENERATED_INCLUDE_DIR "${EOLIB_GENERATED_DIR}/include")
+
 add_subdirectory(src)
+
+if(EOLIB_INSTALL)
+    include(EolibInstall)
+endif()
 
 if(EOLIB_BUILD_TESTS)
     enable_testing()

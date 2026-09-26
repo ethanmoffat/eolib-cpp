@@ -16,6 +16,7 @@ find_package(nlohmann_json 3 CONFIG QUIET)
 
 if(NOT nlohmann_json_FOUND)
     include(FetchContent)
+    set(JSON_Install OFF CACHE BOOL "" FORCE)
     FetchContent_Declare(
         nlohmann_json
         URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz

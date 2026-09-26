@@ -4,7 +4,7 @@
 # This directory can also be built standalone (e.g. for the host when cross-compiling eolib).
 
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-    cmake_minimum_required(VERSION 3.16)
+    cmake_minimum_required(VERSION 3.18)
     project(eolib_protocol_gen LANGUAGES CXX)
     if(POLICY CMP0135)
         cmake_policy(SET CMP0135 NEW)
@@ -16,20 +16,19 @@ endif()
 find_package(pugixml CONFIG QUIET)
 
 if(NOT TARGET pugixml::pugixml)
+    # pugixml is a single source file. Build it as part of the generator rather than adding its CMake project, so
+    # none of its install rules or options leak into the eolib build.
     include(FetchContent)
-    # Let option() in pugixml honor the variables set here.
-    set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-    set(PUGIXML_INSTALL OFF CACHE BOOL "" FORCE)
-    set(PUGIXML_NO_EXCEPTIONS OFF CACHE BOOL "" FORCE)
     FetchContent_Declare(
-        pugixml
+        eolib_pugixml
         URL https://github.com/zeux/pugixml/archive/refs/tags/v1.14.tar.gz
-        URL_HASH SHA256=610f98375424b5614754a6f34a491adbddaaec074e9044577d965160ec103d2e)
-    # Always build pugixml statically so the generator has no runtime dependencies.
-    set(_eolib_saved_build_shared_libs ${BUILD_SHARED_LIBS})
-    set(BUILD_SHARED_LIBS OFF)
-    FetchContent_MakeAvailable(pugixml)
-    set(BUILD_SHARED_LIBS ${_eolib_saved_build_shared_libs})
+        URL_HASH SHA256=610f98375424b5614754a6f34a491adbddaaec074e9044577d965160ec103d2e
+        SOURCE_SUBDIR do-not-add-subdirectory)
+    FetchContent_MakeAvailable(eolib_pugixml)
+    add_library(eolib_pugixml STATIC "${eolib_pugixml_SOURCE_DIR}/src/pugixml.cpp")
+    target_include_directories(eolib_pugixml SYSTEM PUBLIC "${eolib_pugixml_SOURCE_DIR}/src")
+    set_target_properties(eolib_pugixml PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    add_library(pugixml::pugixml ALIAS eolib_pugixml)
 endif()
 
 add_library(eolib_protocol_gen_lib STATIC src/emitter.cpp src/model.cpp src/names.cpp src/types.cpp)

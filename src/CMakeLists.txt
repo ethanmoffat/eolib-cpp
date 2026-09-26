@@ -1,8 +1,5 @@
 include(GenerateExportHeader)
 
-set(EOLIB_GENERATED_DIR "${PROJECT_BINARY_DIR}/generated")
-set(EOLIB_GENERATED_INCLUDE_DIR "${EOLIB_GENERATED_DIR}/include")
-
 include(EolibGenerate)
 
 set(EOLIB_RUNTIME_SOURCES
