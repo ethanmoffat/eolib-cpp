@@ -26,6 +26,22 @@ endif()
 
 include(GoogleTest)
 
+# Test support code that builds packets from the eo-captured-packets properties, generated from the protocol XML.
+get_property(eolib_generator_command GLOBAL PROPERTY EOLIB_GENERATOR_COMMAND)
+get_property(eolib_generator_depends GLOBAL PROPERTY EOLIB_GENERATOR_DEPENDS)
+set(eolib_test_generated_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
+set(eolib_test_properties_source "${eolib_test_generated_dir}/captured_packet_properties.cpp")
+set(eolib_test_properties_stamp "${eolib_test_generated_dir}/captured_packet_properties.stamp")
+add_custom_command(
+    OUTPUT "${eolib_test_properties_stamp}"
+    BYPRODUCTS "${eolib_test_properties_source}"
+    COMMAND "${eolib_generator_command}" --mode test-properties --input "${EOLIB_PROTOCOL_XML_DIR}" --output
+            "${eolib_test_generated_dir}" --stamp "${eolib_test_properties_stamp}"
+    DEPENDS ${eolib_generator_depends}
+    COMMENT "Generating eolib test properties code"
+    VERBATIM)
+add_custom_target(eolib_generate_test_properties DEPENDS "${eolib_test_properties_stamp}")
+
 add_executable(
     eolib_tests
     data/eo_reader_test.cpp
@@ -36,11 +52,19 @@ add_executable(
     encrypt/server_verifier_test.cpp
     packet/packet_sequencer_test.cpp
     packet/sequence_start_test.cpp
+    protocol/captured_packet_properties.cpp
     protocol/captured_packets_test.cpp
     protocol/generated_protocol_test.cpp
     protocol/pub_map_test.cpp
     protocol/serializable_test.cpp
-    version_test.cpp)
+    version_test.cpp
+    "${eolib_test_properties_source}")
+add_dependencies(eolib_tests eolib_generate_test_properties)
+
+if(MSVC)
+    # The generated properties source defines many functions.
+    target_compile_options(eolib_tests PRIVATE /bigobj)
+endif()
 
 target_include_directories(eolib_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 

@@ -31,7 +31,8 @@ if(NOT TARGET pugixml::pugixml)
     add_library(pugixml::pugixml ALIAS eolib_pugixml)
 endif()
 
-add_library(eolib_protocol_gen_lib STATIC src/emitter.cpp src/model.cpp src/names.cpp src/types.cpp)
+add_library(eolib_protocol_gen_lib STATIC src/emitter.cpp src/model.cpp src/names.cpp
+                                                  src/property_emitter.cpp src/types.cpp)
 target_include_directories(eolib_protocol_gen_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_features(eolib_protocol_gen_lib PUBLIC cxx_std_17)
 target_link_libraries(eolib_protocol_gen_lib PUBLIC pugixml::pugixml PRIVATE eolib_compiler_options)

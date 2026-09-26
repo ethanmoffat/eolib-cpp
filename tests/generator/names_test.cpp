@@ -30,6 +30,15 @@ TEST(NamesTest, FieldIdentifierAppendsUnderscoreToKeywords)
     EXPECT_EQ(FieldIdentifier("player_id"), "player_id");
 }
 
+TEST(NamesTest, MemberIdentifierRenamesKeywordsAndReservedIdentifiers)
+{
+    EXPECT_EQ(MemberIdentifier("class"), "class_");
+    EXPECT_EQ(MemberIdentifier("writer"), "writer_");
+    EXPECT_EQ(MemberIdentifier("byte_size"), "byte_size");
+    EXPECT_EQ(MemberIdentifier("byte_size_"), "byte_size__");
+    EXPECT_EQ(MemberIdentifier("player_id"), "player_id");
+}
+
 TEST(NamesTest, StringLiteralEscapesSpecialCharacters)
 {
     EXPECT_EQ(StringLiteral("NEW"), "\"NEW\"");

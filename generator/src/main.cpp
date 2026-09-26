@@ -1,6 +1,7 @@
 #include "emitter.hpp"
 #include "errors.hpp"
 #include "model.hpp"
+#include "property_emitter.hpp"
 #include "types.hpp"
 
 #include <filesystem>
@@ -16,11 +17,17 @@ using namespace eolib::generator;
 namespace
 {
 
-constexpr const char* kUsage = "Usage: eolib-protocol-gen --input <xml dir> --output <dir> [--stamp <file>]\n"
-                               "\n"
-                               "Generates C++ code for the eo-protocol XML files found under <xml dir>.\n"
-                               "Headers are written to <dir>/include and sources to <dir>/src. Files are only\n"
-                               "rewritten if their content changes. If specified, <file> is touched on success.\n";
+constexpr const char* kUsage =
+    "Usage: eolib-protocol-gen --input <xml dir> --output <dir> [--stamp <file>] [--mode <mode>]\n"
+    "\n"
+    "Generates C++ code for the eo-protocol XML files found under <xml dir>. Files are only rewritten if their\n"
+    "content changes. If specified, <file> is touched on success.\n"
+    "\n"
+    "Modes:\n"
+    "  protocol          (default) the protocol code. Headers are written to <dir>/include and sources to\n"
+    "                    <dir>/src.\n"
+    "  test-properties   test support code for the eolib tests, which builds packets from the properties in\n"
+    "                    eo-captured-packets files. Written to <dir>/captured_packet_properties.cpp.\n";
 
 std::string ReadFile(const fs::path& path)
 {
@@ -60,6 +67,7 @@ int main(int argc, char* argv[])
     fs::path input;
     fs::path output;
     fs::path stamp;
+    std::string mode = "protocol";
 
     for (int i = 1; i < argc; ++i)
     {
@@ -86,6 +94,10 @@ int main(int argc, char* argv[])
         {
             stamp = argv[++i];
         }
+        else if (arg == "--mode")
+        {
+            mode = argv[++i];
+        }
         else
         {
             std::cerr << "Unknown argument: " << arg << "\n\n" << kUsage;
@@ -93,7 +105,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    if (input.empty() || output.empty())
+    if (input.empty() || output.empty() || (mode != "protocol" && mode != "test-properties"))
     {
         std::cerr << kUsage;
         return 2;
@@ -103,7 +115,8 @@ int main(int argc, char* argv[])
     {
         const auto files = LoadProtocolFiles(input);
         TypeRegistry types(files);
-        const auto outputs = GenerateProtocol(files, types);
+        const auto outputs =
+            mode == "protocol" ? GenerateProtocol(files, types) : GenerateCapturedPacketProperties(files, types);
 
         int written = 0;
         for (const auto& file : outputs)

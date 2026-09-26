@@ -7,6 +7,10 @@
 #   EOLIB_GENERATED_SOURCES      - list of generated sources
 #   eolib_generate_protocol      - custom target that runs the generator
 #
+# Global properties (for use outside of this directory scope, e.g. by the tests):
+#   EOLIB_GENERATOR_COMMAND      - the generator executable (may be a generator expression)
+#   EOLIB_GENERATOR_DEPENDS      - dependencies of commands that run the generator (target or file, and XML files)
+#
 # The generator is built from source, unless EOLIB_GENERATOR_EXECUTABLE points to a prebuilt host executable. When
 # cross-compiling without EOLIB_GENERATOR_EXECUTABLE, the generator is built for the host with ExternalProject.
 #
@@ -99,3 +103,6 @@ add_custom_command(
     VERBATIM)
 
 add_custom_target(eolib_generate_protocol DEPENDS "${eolib_generator_stamp}")
+
+set_property(GLOBAL PROPERTY EOLIB_GENERATOR_COMMAND "${eolib_generator_command}")
+set_property(GLOBAL PROPERTY EOLIB_GENERATOR_DEPENDS ${eolib_generator_depends} ${EOLIB_PROTOCOL_XML_FILES})

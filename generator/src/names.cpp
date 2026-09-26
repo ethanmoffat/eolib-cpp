@@ -3,6 +3,7 @@
 #include <array>
 #include <cctype>
 #include <cstdio>
+#include <set>
 #include <string_view>
 
 namespace eolib::generator
@@ -57,6 +58,37 @@ bool IsCppKeyword(const std::string& name)
 std::string FieldIdentifier(const std::string& name)
 {
     return IsCppKeyword(name) ? name + "_" : name;
+}
+
+bool IsReservedIdentifier(const std::string& name)
+{
+    static const std::set<std::string> kReservedIdentifiers = {
+        "writer",
+        "reader",
+        "other",
+        "i",
+        "result",
+        "case_data",
+        "old_writer_length",
+        "reader_start_position",
+        "reached_null_optional",
+        "sanitization_guard",
+        "chunked_guard",
+        "byte_size_",
+        "FAMILY",
+        "ACTION",
+    };
+    return kReservedIdentifiers.count(name) != 0;
+}
+
+std::string MemberIdentifier(const std::string& name)
+{
+    std::string result = FieldIdentifier(name);
+    while (IsReservedIdentifier(result))
+    {
+        result += "_";
+    }
+    return result;
 }
 
 std::string StringLiteral(const std::string& value)

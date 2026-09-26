@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `eolib/eolib.hpp` and `eolib/protocol.hpp` umbrella headers.
 - CMake package (`find_package(eolib CONFIG)`, `eolib::eolib` target), FetchContent/`add_subdirectory` support and CPack archives named `eolib-<version>-<platform>`.
 - vcpkg overlay port (`ports/eolib`).
-- Round-trip tests for the packets in `eo-captured-packets`, and pub/map file tests.
+- Tests for the packets in `eo-captured-packets`, checking byte-exact round trips and the field values of each packet against the captured properties, and pub/map file tests.
 - Documentation: getting started guide.
 
 [Unreleased]:  https://github.com/ethanmoffat/eolib-cpp/compare/v0.1.0-alpha.1...HEAD
