@@ -14,3 +14,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `eolib::encrypt` runtime: `DataEncrypter` and `ServerVerifier`.
 - `eolib::packet` runtime: `PacketSequencer` and the `ZeroSequenceStart`, `InitSequenceStart`, `PingSequenceStart` and `AccountReplySequenceStart` sequence starts.
 - `eolib::protocol::Serializable` interface.
+- `eolib-protocol-gen` code generator, which generates the protocol code from the `eo-protocol` XML files at build time.
+- Generated protocol code: enums, structs, client/server packets and packet factories in `eolib::protocol::net`, `eolib::protocol::pub` and `eolib::protocol::map`, plus the `eolib::protocol::net::Packet` interface.
+- `eolib/eolib.hpp` and `eolib/protocol.hpp` umbrella headers.

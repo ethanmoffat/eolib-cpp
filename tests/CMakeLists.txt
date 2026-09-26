@@ -24,6 +24,7 @@ add_executable(
     encrypt/server_verifier_test.cpp
     packet/packet_sequencer_test.cpp
     packet/sequence_start_test.cpp
+    protocol/generated_protocol_test.cpp
     protocol/serializable_test.cpp
     version_test.cpp)
 
@@ -33,3 +34,11 @@ target_link_libraries(eolib_tests PRIVATE eolib::eolib GTest::gtest_main eolib_c
 set_target_properties(eolib_tests PROPERTIES CXX_EXTENSIONS OFF)
 
 gtest_discover_tests(eolib_tests)
+
+# The generator tests require the generator library, which is unavailable when a prebuilt or host generator is used.
+if(TARGET eolib_protocol_gen_lib)
+    add_executable(eolib_generator_tests generator/names_test.cpp generator/validation_test.cpp)
+    target_link_libraries(eolib_generator_tests PRIVATE eolib_protocol_gen_lib GTest::gtest_main eolib_compiler_options)
+    set_target_properties(eolib_generator_tests PROPERTIES CXX_EXTENSIONS OFF)
+    gtest_discover_tests(eolib_generator_tests)
+endif()

@@ -3,6 +3,8 @@ include(GenerateExportHeader)
 set(EOLIB_GENERATED_DIR "${PROJECT_BINARY_DIR}/generated")
 set(EOLIB_GENERATED_INCLUDE_DIR "${EOLIB_GENERATED_DIR}/include")
 
+include(EolibGenerate)
+
 set(EOLIB_RUNTIME_SOURCES
     data/eo_reader.cpp
     data/eo_writer.cpp
@@ -14,7 +16,8 @@ set(EOLIB_RUNTIME_SOURCES
     packet/sequence_start.cpp
     version.cpp)
 
-add_library(eolib ${EOLIB_RUNTIME_SOURCES})
+add_library(eolib ${EOLIB_RUNTIME_SOURCES} ${EOLIB_GENERATED_SOURCES})
+add_dependencies(eolib eolib_generate_protocol)
 add_library(eolib::eolib ALIAS eolib)
 
 configure_file("${PROJECT_SOURCE_DIR}/cmake/version.hpp.in" "${EOLIB_GENERATED_INCLUDE_DIR}/eolib/version.hpp" @ONLY)
