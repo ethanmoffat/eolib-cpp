@@ -181,11 +181,18 @@ private:
         {
             definitions_.Line("(void)target;");
         }
-        definitions_.Open("for (const auto& property : properties)");
-        if (!body.branches.Empty() || !body.ignored_names.empty())
+        if (body.branches.Empty() && body.ignored_names.empty())
         {
-            definitions_.Line("const std::string& name = Name(property);");
+            // A loop would warn about unreachable code (MSVC C4702), since UnknownProperty doesn't return.
+            definitions_.Open("if (!properties.empty())");
+            definitions_.Line("UnknownProperty(properties.front(), \"" + qualified_name + "\");");
+            definitions_.Close();
+            definitions_.Close();
+            definitions_.Line();
+            return;
         }
+        definitions_.Open("for (const auto& property : properties)");
+        definitions_.Line("const std::string& name = Name(property);");
         std::string keyword = "if";
         if (!body.branches.Empty())
         {
