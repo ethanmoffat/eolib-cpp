@@ -1,0 +1,17 @@
+#pragma once
+
+#include "eolib/export.hpp"
+
+#define EOLIB_VERSION_MAJOR @PROJECT_VERSION_MAJOR@
+#define EOLIB_VERSION_MINOR @PROJECT_VERSION_MINOR@
+#define EOLIB_VERSION_PATCH @PROJECT_VERSION_PATCH@
+#define EOLIB_VERSION_SUFFIX "@EOLIB_VERSION_SUFFIX@"
+#define EOLIB_VERSION_STRING "@EOLIB_VERSION_FULL@"
+
+namespace eolib
+{
+
+/// Gets the full SemVer version string of the eolib library that the application is linked against.
+EOLIB_API const char* GetVersionString();
+
+} // namespace eolib
