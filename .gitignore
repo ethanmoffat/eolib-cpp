@@ -4,6 +4,7 @@
 /out/
 /install/
 /dist/
+/.tools/
 CMakeUserPresets.json
 compile_commands.json
 

@@ -115,6 +115,21 @@ ctest --test-dir build -C Release
 cmake --install build --prefix install
 ```
 
+### Installing dependencies
+
+`scripts/install-deps.sh` (Ubuntu/Debian, RHEL/Fedora, Alpine and macOS) and `scripts/install-deps.ps1` (Windows,
+via Chocolatey) install a compiler toolchain, git and CMake 3.21 or later. They also install the clang-format and
+clang-tidy versions used by CI into `.tools/`, where the `format`, `format-check` and `tidy` targets find them.
+pugixml, GoogleTest and nlohmann/json are downloaded at configure time unless installed (`--system-libs`).
+
+```sh
+sudo ./scripts/install-deps.sh            # --skip-cmake, --skip-style-tools, --system-libs, --dry-run
+```
+
+```powershell
+./scripts/install-deps.ps1 -InstallBuildTools   # as administrator; -SkipCMake, -SkipStyleTools
+```
+
 ### Build scripts
 
 `build-linux.sh` (Linux and macOS) and `build-windows.ps1` (Visual Studio) configure, build and install to `install/`

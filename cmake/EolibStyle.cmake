@@ -6,8 +6,20 @@
 # Generated protocol code is emitted in the project style by the generator, but is not required to be
 # clang-format clean (long lines are not wrapped).
 
-find_program(EOLIB_CLANG_FORMAT_EXECUTABLE NAMES clang-format-18 clang-format DOC "clang-format executable")
-find_program(EOLIB_CLANG_TIDY_EXECUTABLE NAMES clang-tidy-18 clang-tidy DOC "clang-tidy executable")
+# scripts/install-deps installs the versions used by CI into .tools, which takes precedence.
+set(eolib_style_tool_hints "${PROJECT_SOURCE_DIR}/.tools/bin" "${PROJECT_SOURCE_DIR}/.tools/Scripts")
+find_program(
+    EOLIB_CLANG_FORMAT_EXECUTABLE
+    NAMES clang-format-18 clang-format
+    NAMES_PER_DIR
+    HINTS ${eolib_style_tool_hints}
+    DOC "clang-format executable")
+find_program(
+    EOLIB_CLANG_TIDY_EXECUTABLE
+    NAMES clang-tidy-18 clang-tidy
+    NAMES_PER_DIR
+    HINTS ${eolib_style_tool_hints}
+    DOC "clang-tidy executable")
 set(EOLIB_CLANG_TIDY_EXTRA_ARGS "" CACHE STRING "Extra arguments for clang-tidy, e.g. --extra-arg=-isystem<dir>")
 
 file(
