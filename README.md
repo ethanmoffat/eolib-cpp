@@ -115,6 +115,22 @@ ctest --test-dir build -C Release
 cmake --install build --prefix install
 ```
 
+### Build scripts
+
+`build-linux.sh` (Linux and macOS) and `build-windows.ps1` (Visual Studio) configure, build and install to `install/`
+in one step. Both can also run the tests and create the CPack archives. Run `./build-linux.sh --help` or
+`Get-Help ./build-windows.ps1 -Detailed` to see all options.
+
+```sh
+./build-linux.sh --debug --test
+```
+
+```powershell
+./build-windows.ps1 -Debug -Test -Platform Win32
+```
+
+The build directory defaults to `build/<mode>` on Linux and `build/<mode>-<platform>` on Windows.
+
 ### Options
 
 | Option | Default | Description |
