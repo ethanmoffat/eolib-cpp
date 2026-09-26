@@ -17,3 +17,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `eolib-protocol-gen` code generator, which generates the protocol code from the `eo-protocol` XML files at build time.
 - Generated protocol code: enums, structs, client/server packets and packet factories in `eolib::protocol::net`, `eolib::protocol::pub` and `eolib::protocol::map`, plus the `eolib::protocol::net::Packet` interface.
 - `eolib/eolib.hpp` and `eolib/protocol.hpp` umbrella headers.
+- Round-trip tests for the packets in `eo-captured-packets`, and pub/map file tests.

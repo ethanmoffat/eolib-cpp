@@ -12,6 +12,17 @@ if(NOT GTest_FOUND)
     FetchContent_MakeAvailable(googletest)
 endif()
 
+find_package(nlohmann_json 3 CONFIG QUIET)
+
+if(NOT nlohmann_json_FOUND)
+    include(FetchContent)
+    FetchContent_Declare(
+        nlohmann_json
+        URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+        URL_HASH SHA256=d6c65aca6b1ed68e7a182f4757257b107ae403032760ed6ef121c9d55e81757d)
+    FetchContent_MakeAvailable(nlohmann_json)
+endif()
+
 include(GoogleTest)
 
 add_executable(
@@ -24,13 +35,18 @@ add_executable(
     encrypt/server_verifier_test.cpp
     packet/packet_sequencer_test.cpp
     packet/sequence_start_test.cpp
+    protocol/captured_packets_test.cpp
     protocol/generated_protocol_test.cpp
+    protocol/pub_map_test.cpp
     protocol/serializable_test.cpp
     version_test.cpp)
 
 target_include_directories(eolib_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_link_libraries(eolib_tests PRIVATE eolib::eolib GTest::gtest_main eolib_compiler_options)
+target_compile_definitions(eolib_tests
+                           PRIVATE EOLIB_CAPTURED_PACKETS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/eo-captured-packets")
+target_link_libraries(eolib_tests PRIVATE eolib::eolib GTest::gtest_main nlohmann_json::nlohmann_json
+                                          eolib_compiler_options)
 set_target_properties(eolib_tests PROPERTIES CXX_EXTENSIONS OFF)
 
 gtest_discover_tests(eolib_tests)
