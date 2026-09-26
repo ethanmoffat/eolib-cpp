@@ -1,0 +1,160 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - v*
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version-without-v }}
+      prerelease: ${{ steps.get-version.outputs.prerelease != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get version from tag
+        id: get-version
+        uses: battila7/get-version-action@v2
+      - name: Check tag matches CMake project version
+        env:
+          TAG_VERSION: ${{ steps.get-version.outputs.version-without-v }}
+        run: |
+          project_version=$(sed -n 's/^    VERSION \([0-9]*\.[0-9]*\.[0-9]*\)$/\1/p' CMakeLists.txt | head -n 1)
+          suffix=$(sed -n 's/^set(EOLIB_VERSION_SUFFIX "\(.*\)")$/\1/p' CMakeLists.txt | head -n 1)
+          cmake_version="${project_version}${suffix:+-${suffix}}"
+          echo "Tag version:   ${TAG_VERSION}"
+          echo "CMake version: ${cmake_version}"
+          if [ "${TAG_VERSION}" != "${cmake_version}" ]; then
+            echo "::error::Tag version ${TAG_VERSION} does not match CMake version ${cmake_version}"
+            exit 1
+          fi
+      - name: Check CHANGELOG.md has a section for this version
+        env:
+          TAG_VERSION: ${{ steps.get-version.outputs.version-without-v }}
+        run: |
+          if ! grep -qF "## [${TAG_VERSION}]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no section for ${TAG_VERSION}"
+            exit 1
+          fi
+
+  package:
+    name: Package ${{ matrix.platform }}
+    needs: validate
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - platform: linux-x64-gnu
+            os: ubuntu-22.04
+          - platform: linux-x64-musl
+            os: ubuntu-latest
+            container: alpine:latest
+          - platform: windows-x64
+            os: windows-latest
+            cmake_args: -A x64
+          - platform: windows-x86
+            os: windows-latest
+            cmake_args: -A Win32
+          - platform: macos-arm64
+            os: macos-latest
+            cmake_args: -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+          - platform: macos-x64
+            os: macos-13
+            cmake_args: -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Install Alpine dependencies
+        if: matrix.container == 'alpine:latest'
+        shell: sh
+        run: apk add --no-cache bash build-base cmake git linux-headers
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DEOLIB_PACKAGE_PLATFORM=${{ matrix.platform }}
+          ${{ matrix.cmake_args }}
+
+      - name: Build
+        run: cmake --build build --config Release --parallel 4
+
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure --parallel 4
+
+      - name: Package
+        working-directory: build
+        run: cpack -C Release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eolib-${{ needs.validate.outputs.version }}-${{ matrix.platform }}
+          path: |
+            build/eolib-*.zip
+            build/eolib-*.tar.gz
+            build/eolib-*.sha256
+          if-no-files-found: error
+
+  source:
+    name: Source archive
+    needs: validate
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.validate.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Create source archive
+        run: |
+          # Includes the submodule contents, so the archive can be built without git (e.g. by package managers).
+          name="eolib-${VERSION}-src"
+          git ls-files --recurse-submodules -z \
+            | tar --null --files-from=- --transform "s,^,${name}/," -czf "${name}.tar.gz"
+          sha512sum "${name}.tar.gz" > "${name}.tar.gz.sha512"
+          cat "${name}.tar.gz.sha512"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eolib-${{ needs.validate.outputs.version }}-src
+          path: |
+            eolib-*-src.tar.gz
+            eolib-*-src.tar.gz.sha512
+          if-no-files-found: error
+
+  github-release:
+    name: GitHub release
+    needs: [validate, package, source]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse changelog
+        id: changelog
+        uses: coditory/changelog-parser@v1
+        with:
+          version: ${{ needs.validate.outputs.version }}
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: eolib v${{ needs.validate.outputs.version }}
+          body: ${{ steps.changelog.outputs.description }}
+          prerelease: ${{ needs.validate.outputs.prerelease }}
+          files: dist/*
+          fail_on_unmatched_files: true

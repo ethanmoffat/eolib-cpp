@@ -29,6 +29,8 @@ option(EOLIB_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 
 if(EOLIB_IS_TOP_LEVEL)
     set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+    # Keep executables and DLLs together so the tests can find eolib.dll in shared Windows builds.
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin")
     if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
         set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
     endif()

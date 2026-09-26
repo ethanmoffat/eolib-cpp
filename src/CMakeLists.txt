@@ -35,6 +35,10 @@ target_compile_features(eolib PUBLIC cxx_std_17)
 
 if(NOT BUILD_SHARED_LIBS)
     target_compile_definitions(eolib PUBLIC EOLIB_STATIC_DEFINE)
+elseif(MSVC)
+    # Exported classes have standard library members and bases (e.g. std::string, std::runtime_error). This is safe
+    # as long as eolib and its consumers use the same compiler and runtime, which is required for C++ DLLs anyway.
+    target_compile_options(eolib PUBLIC /wd4251 /wd4275)
 endif()
 
 set_target_properties(

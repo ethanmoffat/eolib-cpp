@@ -1,0 +1,136 @@
+name: Build
+
+on:
+  push:
+    branches: ["master"]
+    paths-ignore:
+      - "CHANGELOG.md"
+      - "README.md"
+      - "docs/**"
+  pull_request:
+    branches: ["master"]
+    paths-ignore:
+      - "CHANGELOG.md"
+      - "README.md"
+      - "docs/**"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CLANG_FORMAT_VERSION: "18.1.8"
+
+jobs:
+  format:
+    name: Format check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Install clang-format
+        run: pip install clang-format==${{ env.CLANG_FORMAT_VERSION }}
+      - name: Check formatting
+        run: git ls-files -z '*.cpp' '*.hpp' | xargs -0 clang-format --dry-run --Werror --style=file
+
+  build-test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Ubuntu GCC
+            os: ubuntu-latest
+            cmake_args: -DCMAKE_CXX_COMPILER=g++
+          - name: Ubuntu Clang
+            os: ubuntu-latest
+            cmake_args: -DCMAKE_CXX_COMPILER=clang++
+          - name: Ubuntu GCC (shared)
+            os: ubuntu-latest
+            cmake_args: -DCMAKE_CXX_COMPILER=g++ -DBUILD_SHARED_LIBS=ON
+          - name: Alpine GCC (musl)
+            os: ubuntu-latest
+            container: alpine:latest
+          - name: Windows MSVC x64
+            os: windows-latest
+            cmake_args: -A x64
+          - name: Windows MSVC x64 (shared)
+            os: windows-latest
+            cmake_args: -A x64 -DBUILD_SHARED_LIBS=ON
+          - name: Windows MSVC Win32
+            os: windows-latest
+            cmake_args: -A Win32
+          - name: macOS arm64
+            os: macos-latest
+          - name: macOS x64
+            os: macos-13
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Install Alpine dependencies
+        if: matrix.container == 'alpine:latest'
+        shell: sh
+        run: apk add --no-cache bash build-base cmake git linux-headers
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DEOLIB_WARNINGS_AS_ERRORS=ON
+          ${{ matrix.cmake_args }}
+
+      - name: Build
+        run: cmake --build build --config Release --parallel 4
+
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure --parallel 4
+
+      - name: Install
+        run: cmake --install build --config Release --prefix install
+
+      - name: Consume installed package
+        run: |
+          # Lets the consumer find eolib.dll in shared Windows builds.
+          export PATH="$(pwd)/install/bin:$PATH"
+          cmake -S tests/consumer -B build-consumer -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$(pwd)/install" ${{ matrix.cmake_args }}
+          cmake --build build-consumer --config Release
+          ctest --test-dir build-consumer -C Release --output-on-failure
+
+  consume-fetchcontent:
+    name: Consume with FetchContent
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Configure consumer
+        run: cmake -S tests/consumer -B build-consumer -DCMAKE_BUILD_TYPE=Release -DEOLIB_CONSUMER_SOURCE_DIR="${{ github.workspace }}"
+      - name: Build consumer
+        run: cmake --build build-consumer --parallel 4
+      - name: Run consumer
+        run: ctest --test-dir build-consumer --output-on-failure
+
+  tidy:
+    name: clang-tidy (advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install clang-tidy
+        run: sudo apt-get update && sudo apt-get install -y clang-tidy
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++
+      - name: Run clang-tidy
+        run: cmake --build build --target tidy
