@@ -119,6 +119,10 @@ int main(int argc, char* argv[])
             fs::create_directories(stamp.parent_path());
             std::ofstream stream(stamp, std::ios::trunc);
             stream << outputs.size() << " files\n";
+            if (!stream)
+            {
+                throw std::runtime_error("Failed to write " + stamp.string() + ".");
+            }
         }
 
         std::cout << "eolib-protocol-gen: generated " << outputs.size() << " files (" << written << " updated)\n";

@@ -29,6 +29,12 @@ struct CapturedPacket
     fs::path path;
 };
 
+// Found by GoogleTest via argument-dependent lookup; without it, parameters print as raw bytes.
+void PrintTo(const CapturedPacket& packet, std::ostream* os)
+{
+    *os << packet.path.generic_string();
+}
+
 std::vector<CapturedPacket> FindCapturedPackets()
 {
     std::vector<CapturedPacket> result;

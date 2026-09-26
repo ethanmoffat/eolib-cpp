@@ -22,6 +22,13 @@ TEST(InitSequenceStartTest, FromInitValues)
     EXPECT_EQ(start.Seq2(), 34);
 }
 
+TEST(SequenceStartTest, MaxValuesMatchProtocol)
+{
+    EXPECT_EQ(InitSequenceStart::MaxValue, 1757);
+    EXPECT_EQ(PingSequenceStart::MaxValue, 1757);
+    EXPECT_EQ(AccountReplySequenceStart::MaxValue, 240);
+}
+
 // Random distributions are implementation-defined, so generated values are validated against their invariants
 // rather than fixed expected values.
 TEST(InitSequenceStartTest, Generate)

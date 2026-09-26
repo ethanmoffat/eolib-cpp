@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <ostream>
+
 #include <string>
 
 using eolib::data::StringEncoder;
@@ -14,6 +16,11 @@ struct StringEncoderCase
     std::string decoded;
     std::string encoded;
 };
+
+void PrintTo(const StringEncoderCase& c, std::ostream* os)
+{
+    *os << ::testing::PrintToString(c.decoded);
+}
 
 class StringEncoderTest : public ::testing::TestWithParam<StringEncoderCase>
 {

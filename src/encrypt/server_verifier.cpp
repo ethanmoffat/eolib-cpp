@@ -5,9 +5,10 @@ namespace eolib::encrypt
 
 int ServerVerifier::Hash(int challenge)
 {
-    ++challenge;
-    return 110905 + (challenge % 9 + 1) * ((11092004 - challenge) % ((challenge % 11 + 1) * 119)) * 119 +
-           challenge % 2004;
+    const int value = challenge + 1;
+    const int multiplier = (value % 9) + 1;
+    const int remainder = (11092004 - value) % (((value % 11) + 1) * 119);
+    return 110905 + (multiplier * remainder * 119) + (value % 2004);
 }
 
 } // namespace eolib::encrypt

@@ -61,17 +61,20 @@ public:
     /// Creates an instance from the <c>seq1</c> and <c>seq2</c> values in the <c>InitInitServerPacket</c>.
     static InitSequenceStart FromInitValues(int seq1, int seq2);
 
-    /// Generates an instance with a random value in the range <c>[0, 1757)</c>.
+    /// The exclusive upper bound of generated values.
+    static constexpr int MaxValue = 1757;
+
+    /// Generates an instance with a random value in the range <c>[0, MaxValue)</c>.
     template <typename Urbg>
     static InitSequenceStart Generate(Urbg& rng)
     {
-        const int value = detail::RandomBelow(rng, 1757);
+        const int value = detail::RandomBelow(rng, MaxValue);
         const int seq1_max = (value + 13) / 7;
         const int seq1_min =
             (std::max)(0, (value - (static_cast<int>(data::EoNumericLimits::CharMax) - 1) + 13 + 6) / 7);
 
         const int seq1 = detail::RandomBelow(rng, seq1_max - seq1_min) + seq1_min;
-        const int seq2 = value - seq1 * 7 + 13;
+        const int seq2 = value - (seq1 * 7) + 13;
 
         return InitSequenceStart(value, seq1, seq2);
     }
@@ -102,11 +105,14 @@ public:
     /// Creates an instance from the <c>seq1</c> and <c>seq2</c> values in the <c>ConnectionPlayerServerPacket</c>.
     static PingSequenceStart FromPingValues(int seq1, int seq2);
 
-    /// Generates an instance with a random value in the range <c>[0, 1757)</c>.
+    /// The exclusive upper bound of generated values.
+    static constexpr int MaxValue = 1757;
+
+    /// Generates an instance with a random value in the range <c>[0, MaxValue)</c>.
     template <typename Urbg>
     static PingSequenceStart Generate(Urbg& rng)
     {
-        const int value = detail::RandomBelow(rng, 1757);
+        const int value = detail::RandomBelow(rng, MaxValue);
         const int seq1 = value + detail::RandomBelow(rng, static_cast<int>(data::EoNumericLimits::CharMax) - 1);
         const int seq2 = seq1 - value;
 
@@ -139,11 +145,14 @@ public:
     /// Creates an instance with the specified value.
     static AccountReplySequenceStart FromValue(int value);
 
-    /// Generates an instance with a random value in the range <c>[0, 240)</c>.
+    /// The exclusive upper bound of generated values.
+    static constexpr int MaxValue = 240;
+
+    /// Generates an instance with a random value in the range <c>[0, MaxValue)</c>.
     template <typename Urbg>
     static AccountReplySequenceStart Generate(Urbg& rng)
     {
-        return AccountReplySequenceStart(detail::RandomBelow(rng, 240));
+        return AccountReplySequenceStart(detail::RandomBelow(rng, MaxValue));
     }
 
     /// Generates an instance using the default random engine.

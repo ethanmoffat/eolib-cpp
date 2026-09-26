@@ -4,6 +4,8 @@
 
 #include <gtest/gtest.h>
 
+#include <ostream>
+
 using eolib::data::EoNumericLimits;
 using eolib::encrypt::ServerVerifier;
 
@@ -15,6 +17,11 @@ struct ServerVerifierCase
     int challenge;
     int expected;
 };
+
+void PrintTo(const ServerVerifierCase& c, std::ostream* os)
+{
+    *os << c.challenge;
+}
 
 class ServerVerifierTest : public ::testing::TestWithParam<ServerVerifierCase>
 {

@@ -23,7 +23,7 @@ InitSequenceStart::InitSequenceStart(int value, int seq1, int seq2)
 
 InitSequenceStart InitSequenceStart::FromInitValues(int seq1, int seq2)
 {
-    return InitSequenceStart(seq1 * 7 + seq2 - 13, seq1, seq2);
+    return InitSequenceStart((seq1 * 7) + seq2 - 13, seq1, seq2);
 }
 
 InitSequenceStart InitSequenceStart::Generate()

@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <ostream>
+
 #include <array>
 #include <cstdint>
 #include <vector>
@@ -16,6 +18,11 @@ struct NumberEncoderCase
     unsigned int number;
     std::array<std::uint8_t, 4> bytes;
 };
+
+void PrintTo(const NumberEncoderCase& c, std::ostream* os)
+{
+    *os << c.number;
+}
 
 class NumberEncoderTest : public ::testing::TestWithParam<NumberEncoderCase>
 {

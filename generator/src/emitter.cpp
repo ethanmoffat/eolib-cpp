@@ -772,7 +772,20 @@ private:
         CheckOptionalField(instruction.optional);
 
         const Type& type = types_.Get(instruction.type, instruction.length);
+        ValidateField(instruction, type);
 
+        const FieldData field = DeclareField(instruction, type);
+        GenerateSerializeField(instruction, type, field);
+        GenerateDeserializeField(instruction, type, field);
+
+        if (instruction.optional)
+        {
+            context_.reached_optional = true;
+        }
+    }
+
+    void ValidateField(const Instruction& instruction, const Type& type)
+    {
         if (!instruction.name)
         {
             if (!instruction.value)
@@ -811,41 +824,48 @@ private:
             throw Error("Padded fields must specify a length.");
         }
         ValidateLengthAttribute(instruction.length);
+    }
 
+    FieldData DeclareField(const Instruction& instruction, const Type& type)
+    {
         FieldData field;
         field.type = &type;
         field.optional = instruction.optional;
         field.hardcoded = instruction.value.has_value();
 
-        if (instruction.name)
+        if (!instruction.name)
         {
-            CheckUniqueName(*instruction.name);
-            field.identifier = Identifier(*instruction.name);
-            AddMemberDocs(instruction, MemberNotes(instruction, type, false));
-
-            if (field.hardcoded)
-            {
-                const std::string value = HardcodedValueExpression(type, *instruction.value);
-                const std::string cpp_type =
-                    type.kind == TypeKind::String ? "std::string_view" : CppTypeName(type, file_);
-                members_.Line("static constexpr " + cpp_type + " " + field.identifier + " = " + value + ";");
-            }
-            else
-            {
-                std::string cpp_type = CppTypeName(type, file_);
-                if (instruction.optional)
-                {
-                    cpp_type = "std::optional<" + cpp_type + ">";
-                }
-                members_.Line(cpp_type + " " + field.identifier + "{};");
-                equals_.push_back(field.identifier);
-                to_string_.emplace_back(field.identifier, field.identifier);
-            }
-            members_.Line();
-            context_.accessible_fields[*instruction.name] = field;
+            return field;
         }
 
-        // Serialize
+        CheckUniqueName(*instruction.name);
+        field.identifier = Identifier(*instruction.name);
+        AddMemberDocs(instruction, MemberNotes(instruction, type, false));
+
+        if (field.hardcoded)
+        {
+            const std::string value = HardcodedValueExpression(type, *instruction.value);
+            const std::string cpp_type = type.kind == TypeKind::String ? "std::string_view" : CppTypeName(type, file_);
+            members_.Line("static constexpr " + cpp_type + " " + field.identifier + " = " + value + ";");
+        }
+        else
+        {
+            std::string cpp_type = CppTypeName(type, file_);
+            if (instruction.optional)
+            {
+                cpp_type = "std::optional<" + cpp_type + ">";
+            }
+            members_.Line(cpp_type + " " + field.identifier + "{};");
+            equals_.push_back(field.identifier);
+            to_string_.emplace_back(field.identifier, field.identifier);
+        }
+        members_.Line();
+        context_.accessible_fields[*instruction.name] = field;
+        return field;
+    }
+
+    void GenerateSerializeField(const Instruction& instruction, const Type& type, const FieldData& field)
+    {
         if (instruction.optional)
         {
             BeginSerializeOptional(field);
@@ -869,9 +889,8 @@ private:
                 serialize_length = *instruction.length;
                 if (instruction.name && !field.hardcoded)
                 {
-                    GenerateSerializeLengthCheck(
-                        field.identifier, value + ".size()", *instruction.length,
-                        instruction.padded ? ">" : "!=", instruction.padded ? "or less" : "exactly");
+                    GenerateSerializeLengthCheck(field.identifier, value + ".size()", *instruction.length,
+                                                 instruction.padded);
                 }
             }
             else
@@ -885,8 +904,10 @@ private:
         {
             serialize_.Close();
         }
+    }
 
-        // Deserialize
+    void GenerateDeserializeField(const Instruction& instruction, const Type& type, const FieldData& field)
+    {
         if (instruction.optional)
         {
             BeginDeserializeOptional(type, false);
@@ -899,14 +920,8 @@ private:
         }
         else if (type.kind == TypeKind::Struct)
         {
-            if (instruction.optional)
-            {
-                deserialize_.Line(field.identifier + ".emplace().Deserialize(reader);");
-            }
-            else
-            {
-                deserialize_.Line(field.identifier + ".Deserialize(reader);");
-            }
+            const std::string target = instruction.optional ? field.identifier + ".emplace()" : field.identifier;
+            deserialize_.Line(target + ".Deserialize(reader);");
         }
         else
         {
@@ -917,14 +932,15 @@ private:
         if (instruction.optional)
         {
             deserialize_.Close();
-            context_.reached_optional = true;
         }
     }
 
+    /// Emits a check that a sized field fits its length: exactly equal, or at most the limit if allow_shorter is set.
     void GenerateSerializeLengthCheck(const std::string& identifier, const std::string& size_expression,
-                                      const std::string& limit, const std::string& op, const std::string& description)
+                                      const std::string& limit, bool allow_shorter)
     {
-        const std::string expected = description == "exactly" ? "exactly " + limit : limit + " or less";
+        const std::string op = allow_shorter ? ">" : "!=";
+        const std::string expected = allow_shorter ? limit + " or less" : "exactly " + limit;
         serialize_.Open("if (" + size_expression + " " + op + " " + limit + ")");
         serialize_.Line("throw SerializationError(\"Expected " + identifier + ".size() to be " + expected +
                         ", got \" + std::to_string(" + size_expression + ") + \".\");");
@@ -942,8 +958,22 @@ private:
         }
 
         const Type& type = types_.Get(instruction.type);
-        const std::string& name = *instruction.name;
+        ValidateArray(instruction, type);
 
+        const FieldData field = DeclareArray(instruction, type);
+        const std::string container = instruction.optional ? "(*" + field.identifier + ")" : field.identifier;
+        const bool trailing_delimiter = instruction.delimited && instruction.trailing_delimiter.value_or(true);
+        GenerateSerializeArray(instruction, type, field, container, trailing_delimiter);
+        GenerateDeserializeArray(instruction, type, field, container, trailing_delimiter);
+
+        if (instruction.optional)
+        {
+            context_.reached_optional = true;
+        }
+    }
+
+    void ValidateArray(const Instruction& instruction, const Type& type)
+    {
         if (!instruction.delimited && !type.bounded)
         {
             throw Error("Unbounded element type (" + instruction.type + ") forbidden in non-delimited array.");
@@ -952,13 +982,14 @@ private:
         {
             throw Error("Only delimited arrays can have a trailing delimiter.");
         }
-        const bool trailing_delimiter = instruction.delimited && instruction.trailing_delimiter.value_or(true);
-
         ValidateLengthAttribute(instruction.length);
-        CheckUniqueName(name);
+        CheckUniqueName(*instruction.name);
+    }
 
+    FieldData DeclareArray(const Instruction& instruction, const Type& type)
+    {
         FieldData field;
-        field.identifier = Identifier(name);
+        field.identifier = Identifier(*instruction.name);
         field.type = &type;
         field.array = true;
         field.optional = instruction.optional;
@@ -973,11 +1004,13 @@ private:
         members_.Line();
         equals_.push_back(field.identifier);
         to_string_.emplace_back(field.identifier, field.identifier);
-        context_.accessible_fields[name] = field;
+        context_.accessible_fields[*instruction.name] = field;
+        return field;
+    }
 
-        const std::string container = instruction.optional ? "(*" + field.identifier + ")" : field.identifier;
-
-        // Serialize
+    void GenerateSerializeArray(const Instruction& instruction, const Type& type, const FieldData& field,
+                                const std::string& container, bool trailing_delimiter)
+    {
         if (instruction.optional)
         {
             BeginSerializeOptional(field);
@@ -985,7 +1018,7 @@ private:
 
         if (instruction.length && IsInteger(*instruction.length))
         {
-            GenerateSerializeLengthCheck(field.identifier, container + ".size()", *instruction.length, "!=", "exactly");
+            GenerateSerializeLengthCheck(field.identifier, container + ".size()", *instruction.length, false);
         }
 
         serialize_.Open("for (std::size_t i = 0; i < " + container + ".size(); ++i)");
@@ -1006,8 +1039,11 @@ private:
         {
             serialize_.Close();
         }
+    }
 
-        // Deserialize
+    void GenerateDeserializeArray(const Instruction& instruction, const Type& type, const FieldData& field,
+                                  const std::string& container, bool trailing_delimiter)
+    {
         if (instruction.optional)
         {
             BeginDeserializeOptional(type, true);
@@ -1023,14 +1059,7 @@ private:
             length = size_variable;
         }
 
-        if (length)
-        {
-            deserialize_.Open("for (int i = 0; i < " + *length + "; ++i)");
-        }
-        else
-        {
-            deserialize_.Open("while (reader.Remaining() > 0)");
-        }
+        deserialize_.Open(length ? "for (int i = 0; i < " + *length + "; ++i)" : "while (reader.Remaining() > 0)");
 
         if (type.kind == TypeKind::Struct)
         {
@@ -1059,7 +1088,6 @@ private:
         if (instruction.optional)
         {
             deserialize_.Close();
-            context_.reached_optional = true;
         }
     }
 
@@ -1106,8 +1134,7 @@ private:
         const long long max_size = MaxValueOf(type) + instruction.offset;
         if (max_size < 0x7FFFFFFFLL)
         {
-            GenerateSerializeLengthCheck(referencing_identifier, size_expression, std::to_string(max_size), ">",
-                                         "or less");
+            GenerateSerializeLengthCheck(referencing_identifier, size_expression, std::to_string(max_size), true);
         }
         serialize_.Line(
             WriteStatement(type, size_expression + OffsetExpression(-instruction.offset), std::nullopt, false));
@@ -1199,29 +1226,20 @@ private:
         serialize_.Line("writer.AddByte(0xFF);");
     }
 
+    /// Code generated for the cases of a switch instruction.
+    struct SwitchCases
+    {
+        std::vector<std::string> alternatives = {"std::monostate"};
+        CodeWriter serialize;
+        CodeWriter deserialize;
+        bool reached_optional = false;
+        bool reached_dummy = false;
+    };
+
     void GenerateSwitch(const Instruction& instruction)
     {
         const std::string& field_name = instruction.switch_field;
-        const auto field_it = context_.accessible_fields.find(field_name);
-        if (field_it == context_.accessible_fields.end())
-        {
-            throw Error("Referenced " + field_name + " field is not accessible.");
-        }
-        const FieldData& field = field_it->second;
-        if (field.array)
-        {
-            throw Error("\"" + field_name + "\" field referenced by switch must not be an array.");
-        }
-        if (field.optional || field.length_field || field.hardcoded)
-        {
-            throw Error("\"" + field_name +
-                        "\" field referenced by switch must be unconditionally present (not optional, a length "
-                        "field or hardcoded).");
-        }
-        if (field.type->kind != TypeKind::Integer && field.type->kind != TypeKind::Enum)
-        {
-            throw Error(field_name + " field referenced by switch must be a numeric or enumeration type.");
-        }
+        const FieldData& field = GetSwitchField(field_name);
 
         const std::string data_type_name = SnakeCaseToPascalCase(field_name) + "Data";
         const std::string data_field_name = Identifier(field_name + "_data");
@@ -1240,7 +1258,91 @@ private:
         const std::string switch_expression =
             integer_switch ? "static_cast<int>(" + field.identifier + ")" : field.identifier;
 
-        // Validate cases
+        const bool has_default = ValidateSwitchCases(instruction, field, integer_switch);
+
+        SwitchCases cases;
+        cases.reached_optional = context_.reached_optional;
+        cases.reached_dummy = context_.reached_dummy;
+
+        for (const auto& protocol_case : instruction.cases)
+        {
+            const std::string label =
+                protocol_case.is_default
+                    ? "default:"
+                    : "case " + CaseValueExpression(field, *protocol_case.value, integer_switch) + ":";
+
+            if (protocol_case.instructions.empty())
+            {
+                GenerateEmptyCase(field, data_field_name, label, cases);
+            }
+            else
+            {
+                GenerateDataCase(protocol_case, field, data_type_name, data_field_name, label, cases);
+            }
+        }
+
+        if (!has_default)
+        {
+            for (CodeWriter* writer : {&cases.serialize, &cases.deserialize})
+            {
+                writer->Line("default:");
+                writer->Indent();
+                writer->Line("break;");
+                writer->Dedent();
+            }
+        }
+
+        members_.DocComment("Data associated with different values of the `" + field.identifier + "` field.");
+        members_.Line("using " + data_type_name + " = std::variant<" + Join(cases.alternatives, ", ") + ">;");
+        members_.Line();
+        members_.DocComment("Data associated with the `" + field.identifier + "` field.");
+        members_.Line(data_type_name + " " + data_field_name + "{};");
+        members_.Line();
+
+        serialize_.Open("switch (" + switch_expression + ")");
+        serialize_.Append(cases.serialize);
+        serialize_.Close();
+
+        deserialize_.Open("switch (" + switch_expression + ")");
+        deserialize_.Append(cases.deserialize);
+        deserialize_.Close();
+
+        context_.reached_optional = cases.reached_optional;
+        context_.reached_dummy = cases.reached_dummy;
+
+        equals_.push_back(data_field_name);
+        to_string_.emplace_back(data_field_name, data_field_name);
+    }
+
+    const FieldData& GetSwitchField(const std::string& field_name) const
+    {
+        const auto field_it = context_.accessible_fields.find(field_name);
+        if (field_it == context_.accessible_fields.end())
+        {
+            throw Error("Referenced " + field_name + " field is not accessible.");
+        }
+
+        const FieldData& field = field_it->second;
+        if (field.array)
+        {
+            throw Error("\"" + field_name + "\" field referenced by switch must not be an array.");
+        }
+        if (field.optional || field.length_field || field.hardcoded)
+        {
+            throw Error("\"" + field_name +
+                        "\" field referenced by switch must be unconditionally present (not optional, a length "
+                        "field or hardcoded).");
+        }
+        if (field.type->kind != TypeKind::Integer && field.type->kind != TypeKind::Enum)
+        {
+            throw Error(field_name + " field referenced by switch must be a numeric or enumeration type.");
+        }
+        return field;
+    }
+
+    /// Validates case ordering and uniqueness. Returns true if the switch has a default case.
+    bool ValidateSwitchCases(const Instruction& instruction, const FieldData& field, bool integer_switch) const
+    {
         bool reached_default = false;
         std::set<std::string> case_values;
         for (const auto& protocol_case : instruction.cases)
@@ -1255,126 +1357,82 @@ private:
             }
             else if (!case_values.insert(CaseValueExpression(field, *protocol_case.value, integer_switch)).second)
             {
-                throw Error("Duplicate case value " + *protocol_case.value + " in switch on " + field_name + ".");
+                throw Error("Duplicate case value " + *protocol_case.value + " in switch on " +
+                            instruction.switch_field + ".");
             }
         }
+        return reached_default;
+    }
 
-        std::vector<std::string> alternatives = {"std::monostate"};
-        CodeWriter serialize_cases;
-        CodeWriter deserialize_cases;
-        bool reached_optional = context_.reached_optional;
-        bool reached_dummy = context_.reached_dummy;
+    void GenerateEmptyCase(const FieldData& field, const std::string& data_field_name, const std::string& label,
+                           SwitchCases& cases) const
+    {
+        cases.serialize.Line(label);
+        cases.serialize.Indent();
+        cases.serialize.Open("if (!std::holds_alternative<std::monostate>(" + data_field_name + "))");
+        cases.serialize.Line("throw SerializationError(\"Expected " + data_field_name + " to be empty for " +
+                             field.identifier + " \" + detail::FormatValue(" + field.identifier + ") + \".\");");
+        cases.serialize.Close();
+        cases.serialize.Line("break;");
+        cases.serialize.Dedent();
 
-        for (const auto& protocol_case : instruction.cases)
+        cases.deserialize.Line(label);
+        cases.deserialize.Indent();
+        cases.deserialize.Line(data_field_name + " = std::monostate();");
+        cases.deserialize.Line("break;");
+        cases.deserialize.Dedent();
+    }
+
+    void GenerateDataCase(const ProtocolCase& protocol_case, const FieldData& field, const std::string& data_type_name,
+                          const std::string& data_field_name, const std::string& label, SwitchCases& cases)
+    {
+        const std::string case_type_name =
+            data_type_name + (protocol_case.is_default ? std::string("Default") : *protocol_case.value);
+        const std::string description =
+            protocol_case.is_default ? "default" : "value " + CaseValueDescription(field, *protocol_case.value);
+
+        Context case_context;
+        case_context.chunked = context_.chunked;
+        case_context.reached_optional = context_.reached_optional;
+        case_context.reached_dummy = context_.reached_dummy;
+
+        ObjectGenerator case_generator(types_, file_, case_type_name, qualified_name_ + "::" + case_type_name,
+                                       case_context);
+        case_generator.GenerateInstructions(protocol_case.instructions);
+
+        std::string docs = "Data associated with " + field.identifier + " " + description + ".";
+        if (protocol_case.comment)
         {
-            const std::string case_type_name =
-                data_type_name + (protocol_case.is_default ? std::string("Default") : *protocol_case.value);
-
-            const std::string label =
-                protocol_case.is_default
-                    ? "default:"
-                    : "case " + CaseValueExpression(field, *protocol_case.value, integer_switch) + ":";
-
-            const std::string description =
-                protocol_case.is_default ? "default" : "value " + CaseValueDescription(field, *protocol_case.value);
-
-            if (protocol_case.instructions.empty())
-            {
-                serialize_cases.Line(label);
-                serialize_cases.Indent();
-                serialize_cases.Open("if (!std::holds_alternative<std::monostate>(" + data_field_name + "))");
-                serialize_cases.Line("throw SerializationError(\"Expected " + data_field_name + " to be empty for " +
-                                     field.identifier + " \" + detail::FormatValue(" + field.identifier +
-                                     ") + \".\");");
-                serialize_cases.Close();
-                serialize_cases.Line("break;");
-                serialize_cases.Dedent();
-
-                deserialize_cases.Line(label);
-                deserialize_cases.Indent();
-                deserialize_cases.Line(data_field_name + " = std::monostate();");
-                deserialize_cases.Line("break;");
-                deserialize_cases.Dedent();
-                continue;
-            }
-
-            Context case_context;
-            case_context.chunked = context_.chunked;
-            case_context.reached_optional = context_.reached_optional;
-            case_context.reached_dummy = context_.reached_dummy;
-
-            ObjectGenerator case_generator(types_, file_, case_type_name, qualified_name_ + "::" + case_type_name,
-                                           case_context);
-            case_generator.GenerateInstructions(protocol_case.instructions);
-
-            std::string docs = "Data associated with " + field.identifier + " " + description + ".";
-            if (protocol_case.comment)
-            {
-                docs += "\n\n" + *protocol_case.comment;
-            }
-
-            CodeWriter case_declaration;
-            case_generator.Finish(docs, std::nullopt, case_declaration, nested_definitions_);
-            members_.Append(case_declaration);
-            members_.Line();
-            alternatives.push_back(case_type_name);
-
-            reached_optional = reached_optional || case_generator.GetContext().reached_optional;
-            reached_dummy = reached_dummy || case_generator.GetContext().reached_dummy;
-
-            serialize_cases.Line(label);
-            serialize_cases.Line("{");
-            serialize_cases.Indent();
-            serialize_cases.Line("const auto* case_data = std::get_if<" + case_type_name + ">(&" + data_field_name +
-                                 ");");
-            serialize_cases.Open("if (case_data == nullptr)");
-            serialize_cases.Line("throw SerializationError(\"Expected " + data_field_name + " to be type " +
-                                 case_type_name + " for " + field.identifier + " \" + detail::FormatValue(" +
-                                 field.identifier + ") + \".\");");
-            serialize_cases.Close();
-            serialize_cases.Line("case_data->Serialize(writer);");
-            serialize_cases.Line("break;");
-            serialize_cases.Close();
-
-            deserialize_cases.Line(label);
-            deserialize_cases.Indent();
-            deserialize_cases.Line(data_field_name + ".emplace<" + case_type_name + ">().Deserialize(reader);");
-            deserialize_cases.Line("break;");
-            deserialize_cases.Dedent();
+            docs += "\n\n" + *protocol_case.comment;
         }
 
-        if (!reached_default)
-        {
-            serialize_cases.Line("default:");
-            serialize_cases.Indent();
-            serialize_cases.Line("break;");
-            serialize_cases.Dedent();
-            deserialize_cases.Line("default:");
-            deserialize_cases.Indent();
-            deserialize_cases.Line("break;");
-            deserialize_cases.Dedent();
-        }
-
-        members_.DocComment("Data associated with different values of the `" + field.identifier + "` field.");
-        members_.Line("using " + data_type_name + " = std::variant<" + Join(alternatives, ", ") + ">;");
+        CodeWriter case_declaration;
+        case_generator.Finish(docs, std::nullopt, case_declaration, nested_definitions_);
+        members_.Append(case_declaration);
         members_.Line();
-        members_.DocComment("Data associated with the `" + field.identifier + "` field.");
-        members_.Line(data_type_name + " " + data_field_name + "{};");
-        members_.Line();
+        cases.alternatives.push_back(case_type_name);
 
-        serialize_.Open("switch (" + switch_expression + ")");
-        serialize_.Append(serialize_cases);
-        serialize_.Close();
+        cases.reached_optional = cases.reached_optional || case_generator.GetContext().reached_optional;
+        cases.reached_dummy = cases.reached_dummy || case_generator.GetContext().reached_dummy;
 
-        deserialize_.Open("switch (" + switch_expression + ")");
-        deserialize_.Append(deserialize_cases);
-        deserialize_.Close();
+        cases.serialize.Line(label);
+        cases.serialize.Line("{");
+        cases.serialize.Indent();
+        cases.serialize.Line("const auto* case_data = std::get_if<" + case_type_name + ">(&" + data_field_name + ");");
+        cases.serialize.Open("if (case_data == nullptr)");
+        cases.serialize.Line("throw SerializationError(\"Expected " + data_field_name + " to be type " +
+                             case_type_name + " for " + field.identifier + " \" + detail::FormatValue(" +
+                             field.identifier + ") + \".\");");
+        cases.serialize.Close();
+        cases.serialize.Line("case_data->Serialize(writer);");
+        cases.serialize.Line("break;");
+        cases.serialize.Close();
 
-        context_.reached_optional = reached_optional;
-        context_.reached_dummy = reached_dummy;
-
-        equals_.push_back(data_field_name);
-        to_string_.emplace_back(data_field_name, data_field_name);
+        cases.deserialize.Line(label);
+        cases.deserialize.Indent();
+        cases.deserialize.Line(data_field_name + ".emplace<" + case_type_name + ">().Deserialize(reader);");
+        cases.deserialize.Line("break;");
+        cases.deserialize.Dedent();
     }
 
     std::string CaseValueExpression(const FieldData& field, const std::string& value, bool integer_switch) const

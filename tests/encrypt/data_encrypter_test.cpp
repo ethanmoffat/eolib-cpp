@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <ostream>
+
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -24,6 +26,16 @@ struct SwapMultiplesCase
     int multiple;
     std::string expected;
 };
+
+void PrintTo(const EncrypterCase& c, std::ostream* os)
+{
+    *os << ::testing::PrintToString(c.input);
+}
+
+void PrintTo(const SwapMultiplesCase& c, std::ostream* os)
+{
+    *os << ::testing::PrintToString(c.input) << " (multiple " << c.multiple << ")";
+}
 
 std::vector<std::uint8_t> ToBytes(const std::string& str)
 {
