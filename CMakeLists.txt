@@ -45,6 +45,10 @@ if(EOLIB_INSTALL)
     include(EolibInstall)
 endif()
 
+if(EOLIB_IS_TOP_LEVEL)
+    include(EolibStyle)
+endif()
+
 if(EOLIB_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)

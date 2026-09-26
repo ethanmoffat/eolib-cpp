@@ -733,7 +733,7 @@ private:
         }
         if (IsInteger(*length))
         {
-            return *length;
+            return length;
         }
         const auto it = context_.accessible_fields.find(*length);
         if (it == context_.accessible_fields.end() || !it->second.length_field)
@@ -1478,7 +1478,7 @@ private:
         writer.Line();
     }
 
-    static void Includes(CodeWriter& writer, std::set<std::string> local, std::set<std::string> system)
+    static void Includes(CodeWriter& writer, const std::set<std::string>& local, const std::set<std::string>& system)
     {
         for (const auto& include : local)
         {

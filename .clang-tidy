@@ -1,0 +1,55 @@
+---
+# Advisory static analysis profile. Run with the `tidy` CMake target (requires clang-tidy).
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -bugprone-switch-missing-default-case,
+  -bugprone-unchecked-optional-access,
+  cppcoreguidelines-virtual-class-destructor,
+  misc-definitions-in-headers,
+  misc-redundant-expression,
+  misc-unused-using-decls,
+  modernize-use-nullptr,
+  modernize-use-override,
+  performance-*,
+  -performance-enum-size,
+  -performance-inefficient-string-concatenation,
+  -performance-inefficient-vector-operation,
+  readability-identifier-naming,
+  readability-redundant-string-init,
+  readability-container-size-empty,
+HeaderFilterRegex: '(include/eolib|generator/src)/'
+FormatStyle: file
+CheckOptions:
+  # Types and functions: PascalCase
+  - { key: readability-identifier-naming.NamespaceCase, value: lower_case }
+  - { key: readability-identifier-naming.ClassCase, value: CamelCase }
+  - { key: readability-identifier-naming.StructCase, value: CamelCase }
+  - { key: readability-identifier-naming.EnumCase, value: CamelCase }
+  - { key: readability-identifier-naming.EnumConstantCase, value: CamelCase }
+  - { key: readability-identifier-naming.TypeAliasCase, value: CamelCase }
+  - { key: readability-identifier-naming.TypeAliasIgnoredRegexp, value: '^(Urbg|result_type)$' }
+  - { key: readability-identifier-naming.TemplateParameterCase, value: CamelCase }
+  - { key: readability-identifier-naming.FunctionCase, value: CamelCase }
+  - { key: readability-identifier-naming.MethodCase, value: CamelCase }
+  # Variables and fields: snake_case, private members with a trailing underscore
+  - { key: readability-identifier-naming.VariableCase, value: lower_case }
+  - { key: readability-identifier-naming.ParameterCase, value: lower_case }
+  - { key: readability-identifier-naming.PublicMemberCase, value: lower_case }
+  - { key: readability-identifier-naming.PrivateMemberCase, value: lower_case }
+  - { key: readability-identifier-naming.PrivateMemberSuffix, value: _ }
+  - { key: readability-identifier-naming.ProtectedMemberCase, value: lower_case }
+  - { key: readability-identifier-naming.ProtectedMemberSuffix, value: _ }
+  # Constants: PascalCase class constants (e.g. EoNumericLimits::CharMax, avoiding <climits> macros) except the
+  # generated packet FAMILY/ACTION identifiers and named hardcoded protocol fields (snake_case), and kPascalCase
+  # file-local constants
+  - { key: readability-identifier-naming.ClassConstantCase, value: CamelCase }
+  - { key: readability-identifier-naming.ClassConstantIgnoredRegexp, value: '^(FAMILY|ACTION|[a-z][a-z0-9_]*)$' }
+  - { key: readability-identifier-naming.StaticConstantCase, value: CamelCase }
+  - { key: readability-identifier-naming.StaticConstantPrefix, value: k }
+  - { key: readability-identifier-naming.GlobalConstantCase, value: CamelCase }
+  - { key: readability-identifier-naming.GlobalConstantPrefix, value: k }
+  - { key: readability-identifier-naming.MacroDefinitionCase, value: UPPER_CASE }
+...

@@ -128,19 +128,22 @@ std::optional<std::string> ReadTextContent(const pugi::xml_node& node)
 
 int ParseInt(const std::string& value, const std::string& context)
 {
+    const GeneratorError error(context + ": \"" + value + "\" is not a valid integer.");
+    std::size_t consumed = 0;
+    int result = 0;
     try
     {
-        std::size_t consumed = 0;
-        const int result = std::stoi(value, &consumed);
-        if (consumed == value.size())
-        {
-            return result;
-        }
+        result = std::stoi(value, &consumed);
     }
-    catch (const std::exception&)
+    catch (const std::logic_error&)
     {
+        throw error;
     }
-    throw GeneratorError(context + ": \"" + value + "\" is not a valid integer.");
+    if (consumed != value.size())
+    {
+        throw error;
+    }
+    return result;
 }
 
 std::vector<Instruction> ReadInstructions(const pugi::xml_node& parent, const std::string& context);

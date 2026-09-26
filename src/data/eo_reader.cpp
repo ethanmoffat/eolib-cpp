@@ -199,7 +199,8 @@ std::uint8_t EoReader::ReadByte()
 {
     if (Remaining() > 0)
     {
-        return (*data_)[static_cast<std::size_t>(offset_ + position_++)];
+        const auto index = static_cast<std::size_t>(offset_) + static_cast<std::size_t>(position_++);
+        return (*data_)[index];
     }
     return 0;
 }
@@ -218,7 +219,7 @@ int EoReader::FindNextBreakIndex() const
     int i = chunk_start_;
     for (; i < limit_; ++i)
     {
-        if ((*data_)[static_cast<std::size_t>(offset_ + i)] == 0xFF)
+        if ((*data_)[static_cast<std::size_t>(offset_) + static_cast<std::size_t>(i)] == 0xFF)
         {
             break;
         }
