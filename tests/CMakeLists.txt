@@ -50,6 +50,10 @@ target_link_libraries(eolib_tests PRIVATE eolib::eolib GTest::gtest_main nlohman
                                           eolib_compiler_options)
 set_target_properties(eolib_tests PROPERTIES CXX_EXTENSIONS OFF)
 
+if(WIN32)
+    target_sources(eolib_tests PRIVATE windows_header_test.cpp)
+endif()
+
 gtest_discover_tests(eolib_tests)
 
 # The generator tests require the generator library, which is unavailable when a prebuilt or host generator is used.

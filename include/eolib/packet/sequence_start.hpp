@@ -67,7 +67,8 @@ public:
     {
         const int value = detail::RandomBelow(rng, 1757);
         const int seq1_max = (value + 13) / 7;
-        const int seq1_min = std::max(0, (value - (static_cast<int>(data::EoNumericLimits::CharMax) - 1) + 13 + 6) / 7);
+        const int seq1_min =
+            (std::max)(0, (value - (static_cast<int>(data::EoNumericLimits::CharMax) - 1) + 13 + 6) / 7);
 
         const int seq1 = detail::RandomBelow(rng, seq1_max - seq1_min) + seq1_min;
         const int seq2 = value - seq1 * 7 + 13;
