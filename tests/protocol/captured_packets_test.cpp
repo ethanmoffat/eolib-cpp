@@ -120,18 +120,6 @@ bool PacketsEqual(const std::string& side, const Packet& a, const Packet& b)
     return side == "client" ? test::client::PacketsEqual(a, b) : test::server::PacketsEqual(a, b);
 }
 
-/// A top-level property that was renamed in eo-protocol after the packet was captured.
-struct RenamedProperty
-{
-    const char* packet;
-    const char* old_name;
-    const char* new_name;
-};
-
-constexpr RenamedProperty kRenamedProperties[] = {
-    {"server_SpellTargetOther", "caster_direction", "target_type"},
-};
-
 /// Original packets whose data can't be serialized, because it violates the protocol's constraints.
 constexpr const char* kUnserializablePackets[] = {
     // The characters array has more elements than its length field allows.
@@ -168,21 +156,6 @@ CapturedPacketData LoadCapturedPacket(const CapturedPacket& captured)
     result.expected = test::DecodeBase64(json.at("expected").get<std::string>());
     const auto properties = json.find("properties");
     result.properties = properties == json.end() || properties->is_null() ? nlohmann::json::array() : *properties;
-
-    for (const auto& renamed : kRenamedProperties)
-    {
-        if (captured.name != renamed.packet)
-        {
-            continue;
-        }
-        for (auto& property : result.properties)
-        {
-            if (property.value("name", std::string()) == renamed.old_name)
-            {
-                property["name"] = renamed.new_name;
-            }
-        }
-    }
     return result;
 }
 
