@@ -98,7 +98,7 @@ jobs:
         working-directory: build
         run: cpack -C Release
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: eolib-${{ needs.validate.outputs.version }}-${{ matrix.platform }}
           path: |
@@ -125,7 +125,7 @@ jobs:
             | tar --null --files-from=- --transform "s,^,${name}/," -czf "${name}.tar.gz"
           sha512sum "${name}.tar.gz" > "${name}.tar.gz.sha512"
           cat "${name}.tar.gz.sha512"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: eolib-${{ needs.validate.outputs.version }}-src
           path: |
