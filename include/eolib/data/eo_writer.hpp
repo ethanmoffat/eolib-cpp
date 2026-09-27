@@ -14,6 +14,7 @@ namespace eolib::data
 /// A class for writing EO data to a sequence of bytes.
 ///
 /// Strings are treated as raw byte sequences (Windows-1252 in the official client). No transcoding is performed.
+/// You are responsible for any necessary encoding conversions.
 class EOLIB_API EoWriter
 {
 public:

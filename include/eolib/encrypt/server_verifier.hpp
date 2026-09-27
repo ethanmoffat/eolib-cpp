@@ -17,7 +17,16 @@ public:
     /// the <c>InitInitServerPacket</c>.
     ///
     /// @param challenge the challenge value; should be less than <c>EoNumericLimits::ThreeMax</c>.
-    static int Hash(int challenge);
+    ///
+    /// @warning Challenges larger than <b>11,092,110</b> may produce negative hash values that cannot be properly
+    /// represented in the EO protocol (which uses unsigned integers). Keep challenges below this value to avoid
+    /// overflow issues.
+    ///
+    /// @return the hashed challenge value
+    ///
+    /// @see InitInitClientPacket
+    /// @see InitInitServerPacket
+    [[nodiscard]] static int Hash(int challenge);
 };
 
 } // namespace eolib::encrypt

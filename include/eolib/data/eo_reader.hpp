@@ -20,6 +20,9 @@ namespace eolib::data
 /// Reads past the end of the data (or the current chunk) do not throw; numeric reads return 0 and string/byte reads
 /// return truncated results.
 ///
+/// <b>Note:</b> Strings are treated as raw byte sequences (Windows-1252 in the official client). No transcoding
+/// is performed. You are responsible for any necessary encoding conversions.
+///
 /// See: https://github.com/Cirras/eo-protocol/blob/master/docs/chunks.md
 class EOLIB_API EoReader
 {
