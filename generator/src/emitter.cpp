@@ -1108,6 +1108,10 @@ private:
             throw Error("Length field \"" + name + "\" must be referenced by another field.");
         }
         const Instruction& referencing = *reference->second;
+        if (referencing.value || !referencing.name)
+        {
+            throw Error("Hardcoded fields must not reference a length field.");
+        }
         const std::string referencing_identifier = MemberIdentifier(*referencing.name);
 
         FieldData field;

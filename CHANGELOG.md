@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Complete documentation for the public API: every hand-written and generated function now documents its parameters, return value and exceptions, and generated switch data members include the XML comment of the `<switch>` element.
 
 ### Fixed
+- `eolib-protocol-gen` no longer dereferences an empty value (crashing on musl) when a `<length>` field is referenced by an unnamed hardcoded field; it reports the "Hardcoded fields must not reference a length field" error instead.
 - `docs/getting-started.md` incorrectly listed generated `byte` fields as `std::uint8_t`; they are `int`.
 - Using a moved-from `EoReader` no longer dereferences a null pointer; it now behaves like a reader over empty data.
 - `DataEncrypter` documentation: the order of the encryption and decryption steps was incorrect.
