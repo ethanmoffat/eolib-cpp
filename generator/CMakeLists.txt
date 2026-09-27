@@ -21,8 +21,8 @@ if(NOT TARGET pugixml::pugixml)
     include(FetchContent)
     FetchContent_Declare(
         eolib_pugixml
-        URL https://github.com/zeux/pugixml/archive/refs/tags/v1.14.tar.gz
-        URL_HASH SHA256=610f98375424b5614754a6f34a491adbddaaec074e9044577d965160ec103d2e
+        URL https://github.com/zeux/pugixml/archive/refs/tags/v1.16.tar.gz
+        URL_HASH SHA256=357bcab8877dc9943f355d3a72daba1b053238ba955f50fa81586afb65090219
         SOURCE_SUBDIR do-not-add-subdirectory)
     FetchContent_MakeAvailable(eolib_pugixml)
     add_library(eolib_pugixml STATIC "${eolib_pugixml_SOURCE_DIR}/src/pugixml.cpp")

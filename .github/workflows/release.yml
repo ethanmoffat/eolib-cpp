@@ -16,7 +16,7 @@ jobs:
       version: ${{ steps.get-version.outputs.version-without-v }}
       prerelease: ${{ steps.get-version.outputs.prerelease != '' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Full history, so the script can check the tagged commit is on master
           fetch-depth: 0
@@ -63,7 +63,7 @@ jobs:
         shell: sh
         run: apk add --no-cache bash build-base cmake git linux-headers
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -84,7 +84,7 @@ jobs:
         working-directory: build
         run: cpack -C Release
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: eolib-${{ needs.validate.outputs.version }}-${{ matrix.platform }}
           path: |
@@ -100,7 +100,7 @@ jobs:
     env:
       VERSION: ${{ needs.validate.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Create source archive
@@ -111,7 +111,7 @@ jobs:
             | tar --null --files-from=- --transform "s,^,${name}/," -czf "${name}.tar.gz"
           sha512sum "${name}.tar.gz" > "${name}.tar.gz.sha512"
           cat "${name}.tar.gz.sha512"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: eolib-${{ needs.validate.outputs.version }}-src
           path: |
@@ -126,18 +126,18 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Parse changelog
         id: changelog
         uses: coditory/changelog-parser@v1
         with:
           version: ${{ needs.validate.outputs.version }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: eolib v${{ needs.validate.outputs.version }}
           body: ${{ steps.changelog.outputs.description }}
