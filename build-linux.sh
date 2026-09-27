@@ -14,6 +14,7 @@ function main() {
     local opt_clean="false"
     local opt_help="false"
     local opt_install="true"
+    local opt_offline="OFF"
     local opt_package="false"
     local opt_test="false"
     local shared="OFF"
@@ -40,6 +41,9 @@ function main() {
                 ;;
             -n|--no-install)
                 opt_install="false"
+                ;;
+            -o|--offline)
+                opt_offline="ON"
                 ;;
             -t|--test)
                 opt_test="true"
@@ -91,6 +95,7 @@ function main() {
     fi
     echo "Shared library: ${shared}"
     echo "Warnings as errors: ${werror}"
+    echo "Offline: ${opt_offline}"
 
     if [[ "${opt_clean}" == "true" ]]; then
         echo ""
@@ -109,6 +114,7 @@ function main() {
     cmake_macros+=("-DBUILD_SHARED_LIBS=${shared}")
     cmake_macros+=("-DEOLIB_BUILD_TESTS=ON")
     cmake_macros+=("-DEOLIB_WARNINGS_AS_ERRORS=${werror}")
+    cmake_macros+=("-DEOLIB_OFFLINE=${opt_offline}")
 
     echo ""
     cmake -S "${script_dir}" -B "${build_dir}" "${cmake_macros[@]}"
@@ -144,6 +150,8 @@ function display_usage() {
     echo "  -b <dir> --build-dir <dir>    Build directory [default: build/release or build/debug]."
     echo "  -i <dir> --install-dir <dir>  Install directory [default: install]."
     echo "  -n --no-install               Build without local install."
+    echo "  -o --offline                  Build without downloading dependencies. Reuses the dependencies"
+    echo "                                downloaded by an earlier build in the same build directory."
     echo "  -t --test                     Execute tests."
     echo "  -p --package                  Create the release archives with CPack."
     echo "  -s --shared                   Build a shared library instead of a static library."

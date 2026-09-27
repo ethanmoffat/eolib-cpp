@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0-beta.1] - 2026-09-26
 
 ### Added
-- Initial project structure: CMake build, `build-linux.sh`/`build-windows.ps1` convenience scripts, `scripts/install-deps.sh`/`scripts/install-deps.ps1` dependency installation scripts, `scripts/prepare-release.sh` and `scripts/validate-release.sh` release scripts, `eo-protocol` and `eo-captured-packets` submodules, code style configuration.
+- Initial project structure: CMake build, `build-linux.sh`/`build-windows.ps1` convenience scripts, `scripts/install-deps.sh`/`scripts/install-deps.ps1` dependency installation scripts, `scripts/prepare-release.sh` and `scripts/validate-release.sh` release scripts, `eo-protocol` and `eo-captured-packets` submodules, code style configuration, and the `EOLIB_OFFLINE` option for building without an internet connection.
 - `eolib::data` runtime: `EoReader` (chunked reading, slicing), `EoWriter` (string sanitization, padding), `NumberEncoder`, `StringEncoder` and `EoNumericLimits`.
 - `EolibError`, `SerializationError` and `DeserializationError` exception types.
 - `eolib::encrypt` runtime: `DataEncrypter` and `ServerVerifier`.

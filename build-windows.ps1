@@ -10,6 +10,9 @@
     Execute tests.
 .PARAMETER NoInstall
     Build without local install.
+.PARAMETER Offline
+    Build without downloading dependencies. Reuses the dependencies downloaded by an earlier build in the same build
+    directory.
 .PARAMETER Package
     Create the release archives with CPack.
 .PARAMETER Shared
@@ -28,6 +31,7 @@ param (
     [switch]$Debug,
     [switch]$Test,
     [switch]$NoInstall,
+    [switch]$Offline,
     [switch]$Package,
     [switch]$Shared,
     [switch]$WarningsAsErrors,
@@ -116,6 +120,7 @@ if (-not $BuildDir) {
 
 $sharedFlag = if ($Shared) { "ON" } else { "OFF" }
 $warningsFlag = if ($WarningsAsErrors) { "ON" } else { "OFF" }
+$offlineFlag = if ($Offline) { "ON" } else { "OFF" }
 
 Write-Output ""
 Write-Output "Using generator: $generator"
@@ -127,6 +132,7 @@ if (-not $NoInstall) {
 }
 Write-Output "Shared library: $sharedFlag"
 Write-Output "Warnings as errors: $warningsFlag"
+Write-Output "Offline: $offlineFlag"
 
 if ($Clean) {
     Write-Output ""
@@ -145,7 +151,8 @@ Invoke-Checked "cmake generation" {
         "-DCMAKE_INSTALL_PREFIX=$InstallDir" `
         "-DBUILD_SHARED_LIBS=$sharedFlag" `
         "-DEOLIB_BUILD_TESTS=ON" `
-        "-DEOLIB_WARNINGS_AS_ERRORS=$warningsFlag"
+        "-DEOLIB_WARNINGS_AS_ERRORS=$warningsFlag" `
+        "-DEOLIB_OFFLINE=$offlineFlag"
 }
 
 Invoke-Checked "cmake build" {

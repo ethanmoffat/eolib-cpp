@@ -11,6 +11,7 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     endif()
     list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake")
     include(EolibCompilerOptions)
+    option(EOLIB_OFFLINE "Build without downloading dependencies (no internet connection)" OFF)
 endif()
 
 find_package(pugixml CONFIG QUIET)
@@ -18,13 +19,9 @@ find_package(pugixml CONFIG QUIET)
 if(NOT TARGET pugixml::pugixml)
     # pugixml is a single source file. Build it as part of the generator rather than adding its CMake project, so
     # none of its install rules or options leak into the eolib build.
-    include(FetchContent)
-    FetchContent_Declare(
-        eolib_pugixml
-        URL https://github.com/zeux/pugixml/archive/refs/tags/v1.16.tar.gz
-        URL_HASH SHA256=357bcab8877dc9943f355d3a72daba1b053238ba955f50fa81586afb65090219
-        SOURCE_SUBDIR do-not-add-subdirectory)
-    FetchContent_MakeAvailable(eolib_pugixml)
+    include(EolibFetchDependency)
+    eolib_fetch_dependency(eolib_pugixml URL https://github.com/zeux/pugixml/archive/refs/tags/v1.16.tar.gz
+                           SOURCE_SUBDIR do-not-add-subdirectory)
     add_library(eolib_pugixml STATIC "${eolib_pugixml_SOURCE_DIR}/src/pugixml.cpp")
     target_include_directories(eolib_pugixml SYSTEM PUBLIC "${eolib_pugixml_SOURCE_DIR}/src")
     set_target_properties(eolib_pugixml PROPERTIES POSITION_INDEPENDENT_CODE ON)

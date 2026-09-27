@@ -78,6 +78,7 @@ elseif(CMAKE_CROSSCOMPILING)
         SOURCE_DIR "${PROJECT_SOURCE_DIR}/generator"
         BINARY_DIR "${eolib_host_generator_dir}"
         CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=${eolib_host_generator_dir}/bin
+                   -DEOLIB_OFFLINE=${EOLIB_OFFLINE}
         BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config Release
         BUILD_BYPRODUCTS "${eolib_host_generator_dir}/bin/eolib-protocol-gen${CMAKE_HOST_EXECUTABLE_SUFFIX}"
         INSTALL_COMMAND "")

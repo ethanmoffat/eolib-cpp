@@ -140,6 +140,14 @@ in one step. Both can also run the tests and create the CPack archives. Run `./b
 
 The build directory defaults to `build/<mode>` on Linux and `build/<mode>-<platform>` on Windows.
 
+### Offline builds
+
+`EOLIB_OFFLINE=ON` (`./build-linux.sh --offline`, `./build-windows.ps1 -Offline`) builds without an internet
+connection. Instead of downloading pugixml, GoogleTest and nlohmann/json, it reuses the copies downloaded by an earlier
+configure of the same build directory. Installed system packages are still used, and
+`FETCHCONTENT_SOURCE_DIR_<NAME>` (e.g. `FETCHCONTENT_SOURCE_DIR_GOOGLETEST`) can point to a local copy. Configuring
+fails with an explanation if a dependency isn't available locally.
+
 ### Options
 
 | Option | Default | Description |
@@ -147,6 +155,7 @@ The build directory defaults to `build/<mode>` on Linux and `build/<mode>-<platf
 | `EOLIB_BUILD_TESTS` | `ON` when top-level | Build the unit, generator and captured packet tests |
 | `EOLIB_INSTALL` | `ON` when top-level | Generate install rules and the CMake package |
 | `EOLIB_WARNINGS_AS_ERRORS` | `OFF` | Treat compiler warnings as errors |
+| `EOLIB_OFFLINE` | `OFF` | Build without downloading dependencies (see [Offline builds](#offline-builds)) |
 | `BUILD_SHARED_LIBS` | `OFF` | Build a shared library |
 | `EOLIB_PROTOCOL_XML_DIR` | `eo-protocol/xml` | The protocol XML directory to generate code from |
 | `EOLIB_GENERATOR_EXECUTABLE` | (empty) | A prebuilt `eolib-protocol-gen` to use instead of building one |
