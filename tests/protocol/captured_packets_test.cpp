@@ -6,14 +6,15 @@
 
 #include "protocol/captured_packet_properties.hpp"
 
-#include <eolib/errors.hpp>
-#include <eolib/protocol.hpp>
+#include "eolib/errors.hpp"
+#include "eolib/protocol.hpp"
 
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <cctype>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -121,14 +122,14 @@ bool PacketsEqual(const std::string& side, const Packet& a, const Packet& b)
 }
 
 /// Original packets whose data can't be serialized, because it violates the protocol's constraints.
-constexpr const char* kUnserializablePackets[] = {
+constexpr const char* UNSERIALIZABLE_PACKETS[] = {
     // The characters array has more elements than its length field allows.
     "server_original_PlayersAgree",
 };
 
 bool IsUnserializable(const CapturedPacket& captured)
 {
-    return std::any_of(std::begin(kUnserializablePackets), std::end(kUnserializablePackets),
+    return std::any_of(std::begin(UNSERIALIZABLE_PACKETS), std::end(UNSERIALIZABLE_PACKETS),
                        [&](const char* name) { return captured.name == name; });
 }
 
@@ -137,7 +138,7 @@ struct CapturedPacketData
 {
     PacketFamily family{};
     PacketAction action{};
-    std::vector<uint8_t> expected;
+    std::vector<std::uint8_t> expected;
     nlohmann::json properties;
 };
 
@@ -201,7 +202,7 @@ TEST_P(CapturedPacketsTest, RoundTrip)
     EXPECT_TRUE(PacketsEqual(captured.side, *second, *packet)) << second->ToString() << "\n" << packet->ToString();
 }
 
-TEST_P(CapturedPacketPropertiesTest, Deserialize_MatchesProperties)
+TEST_P(CapturedPacketPropertiesTest, DeserializeMatchesProperties)
 {
     const auto& captured = GetParam();
     const auto data = LoadCapturedPacket(captured);
@@ -217,7 +218,7 @@ TEST_P(CapturedPacketPropertiesTest, Deserialize_MatchesProperties)
                                                                  << "Expected: " << expected->ToString();
 }
 
-TEST_P(CapturedPacketPropertiesTest, Serialize_FromProperties)
+TEST_P(CapturedPacketPropertiesTest, SerializeFromProperties)
 {
     const auto& captured = GetParam();
     const auto data = LoadCapturedPacket(captured);

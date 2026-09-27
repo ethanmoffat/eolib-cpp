@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include <eolib/protocol/net/enums.hpp>
-#include <eolib/protocol/net/packet.hpp>
+#include "eolib/protocol/net/enums.hpp"
+#include "eolib/protocol/net/packet.hpp"
 
 #include <nlohmann/json.hpp>
 

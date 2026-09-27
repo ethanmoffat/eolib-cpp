@@ -43,13 +43,11 @@ CheckOptions:
   - { key: readability-identifier-naming.ProtectedMemberCase, value: lower_case }
   - { key: readability-identifier-naming.ProtectedMemberSuffix, value: _ }
   # Constants: PascalCase class constants (e.g. EoNumericLimits::CharMax, avoiding <climits> macros) except the
-  # generated packet FAMILY/ACTION identifiers and named hardcoded protocol fields (snake_case), and kPascalCase
+  # generated packet FAMILY/ACTION identifiers and named hardcoded protocol fields (snake_case), and UPPER_CASE
   # file-local constants
   - { key: readability-identifier-naming.ClassConstantCase, value: CamelCase }
   - { key: readability-identifier-naming.ClassConstantIgnoredRegexp, value: '^(FAMILY|ACTION|[a-z][a-z0-9_]*)$' }
-  - { key: readability-identifier-naming.StaticConstantCase, value: CamelCase }
-  - { key: readability-identifier-naming.StaticConstantPrefix, value: k }
-  - { key: readability-identifier-naming.GlobalConstantCase, value: CamelCase }
-  - { key: readability-identifier-naming.GlobalConstantPrefix, value: k }
+  - { key: readability-identifier-naming.StaticConstantCase, value: UPPER_CASE }
+  - { key: readability-identifier-naming.GlobalConstantCase, value: UPPER_CASE }
   - { key: readability-identifier-naming.MacroDefinitionCase, value: UPPER_CASE }
 ...

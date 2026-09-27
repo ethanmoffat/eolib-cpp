@@ -28,7 +28,7 @@ std::string SnakeCaseToPascalCase(const std::string& name)
 
 bool IsCppKeyword(const std::string& name)
 {
-    static constexpr std::array<std::string_view, 97> kKeywords = {
+    static constexpr std::array<std::string_view, 97> KEYWORDS = {
         "alignas",     "alignof",   "and",        "and_eq",    "asm",      "auto",         "bitand",
         "bitor",       "bool",      "break",      "case",      "catch",    "char",         "char8_t",
         "char16_t",    "char32_t",  "class",      "compl",     "concept",  "const",        "consteval",
@@ -45,7 +45,7 @@ bool IsCppKeyword(const std::string& name)
         "xor_eq",      "final",     "override",   "import",    "module",   "NULL",
     };
 
-    for (const auto keyword : kKeywords)
+    for (const auto keyword : KEYWORDS)
     {
         if (name == keyword)
         {
@@ -62,7 +62,7 @@ std::string FieldIdentifier(const std::string& name)
 
 bool IsReservedIdentifier(const std::string& name)
 {
-    static const std::set<std::string> kReservedIdentifiers = {
+    static const std::set<std::string> RESERVED_IDENTIFIERS = {
         "writer",
         "reader",
         "other",
@@ -78,7 +78,7 @@ bool IsReservedIdentifier(const std::string& name)
         "FAMILY",
         "ACTION",
     };
-    return kReservedIdentifiers.count(name) != 0;
+    return RESERVED_IDENTIFIERS.count(name) != 0;
 }
 
 std::string MemberIdentifier(const std::string& name)

@@ -7,17 +7,18 @@ using namespace eolib::packet;
 namespace
 {
 
+constexpr int START_VALUE = 123;
+
 TEST(PacketSequencerTest, NextSequenceLoopsOverValuesZeroToNineAboveStartValue)
 {
-    constexpr int kStartValue = 123;
-    PacketSequencer sequencer(AccountReplySequenceStart::FromValue(kStartValue));
+    PacketSequencer sequencer(AccountReplySequenceStart::FromValue(START_VALUE));
 
     for (int i = 0; i < 10; ++i)
     {
-        EXPECT_EQ(sequencer.NextSequence(), kStartValue + i);
+        EXPECT_EQ(sequencer.NextSequence(), START_VALUE + i);
     }
 
-    EXPECT_EQ(sequencer.NextSequence(), kStartValue);
+    EXPECT_EQ(sequencer.NextSequence(), START_VALUE);
 }
 
 TEST(PacketSequencerTest, WithSequenceStartPreservesCounter)

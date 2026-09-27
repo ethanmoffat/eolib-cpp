@@ -7,7 +7,7 @@ namespace eolib::test
 
 std::vector<std::uint8_t> DecodeBase64(const std::string& input)
 {
-    static const std::string kAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    static const std::string ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     std::vector<std::uint8_t> result;
     int buffer = 0;
     int bits = 0;
@@ -17,7 +17,7 @@ std::vector<std::uint8_t> DecodeBase64(const std::string& input)
         {
             break;
         }
-        const auto index = kAlphabet.find(c);
+        const auto index = ALPHABET.find(c);
         if (index == std::string::npos)
         {
             continue;
@@ -95,9 +95,9 @@ std::string TypeName(const Json& property)
 
 const Json& Children(const Json& property)
 {
-    static const Json kEmpty = Json::array();
+    static const Json EMPTY = Json::array();
     const auto it = property.find("children");
-    return it == property.end() || it->is_null() ? kEmpty : *it;
+    return it == property.end() || it->is_null() ? EMPTY : *it;
 }
 
 bool HasValue(const Json& property)

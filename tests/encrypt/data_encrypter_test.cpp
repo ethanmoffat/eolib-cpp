@@ -49,7 +49,7 @@ std::string FromBytes(const std::vector<std::uint8_t>& bytes)
 
 // Strings are Windows-1252 encoded byte sequences.
 // clang-format off
-const EncrypterCase kInterleaveCases[] = {
+const EncrypterCase INTERLEAVE_CASES[] = {
     {"Hello, World!"s, "H!edlllroo,W "s},
     {"We're \xBC of the way there, so \xBE is remaining."s, "W.eg'nrien i\xBC" "a moefr  tshie  \xBEw aoys  t,heer"s},
     {"64\xB2 = 4096"s, "6649\xB2" "0 4= "s},
@@ -59,7 +59,7 @@ const EncrypterCase kInterleaveCases[] = {
     {"This string contains NUL\x00 (value 0) and a \x80 (value 128)"s, "T)h8i2s1  seturlianvg(  c\x80o nat adinnas  )N0U Le\x00u l(av"s},
 };
 
-const EncrypterCase kDeinterleaveCases[] = {
+const EncrypterCase DEINTERLEAVE_CASES[] = {
     {"Hello, World!"s, "Hlo ol!drW,le"s},
     {"We're \xBC of the way there, so \xBE is remaining."s, "W'e\xBCo h a hr,s  srmiig.nnae i\xBEo eetywetf  re"s},
     {"64\xB2 = 4096"s, "6\xB2=4960  4"s},
@@ -69,7 +69,7 @@ const EncrypterCase kDeinterleaveCases[] = {
     {"This string contains NUL\x00 (value 0) and a \x80 (value 128)"s, "Ti tigcnan U\x00(au )ada\x80(au 2)81elv   n 0elv LNsito nrssh"s},
 };
 
-const EncrypterCase kFlipMsbCases[] = {
+const EncrypterCase FLIP_MSB_CASES[] = {
     {"Hello, World!"s, "\xC8\xE5\xEC\xEC\xEF\xAC\xA0\xD7\xEF\xF2\xEC\xE4\xA1"s},
     {"We're \xBC of the way there, so \xBE is remaining."s, "\xD7\xE5\xA7\xF2\xE5\xA0<\xA0\xEF\xE6\xA0\xF4\xE8\xE5\xA0\xF7\xE1\xF9\xA0\xF4\xE8\xE5\xF2\xE5\xAC\xA0\xF3\xEF\xA0>\xA0\xE9\xF3\xA0\xF2\xE5\xED\xE1\xE9\xEE\xE9\xEE\xE7\xAE"s},
     {"64\xB2 = 4096"s, "\xB6\xB4" "2\xA0\xBD\xA0\xB4\xB0\xB9\xB6"s},
@@ -79,7 +79,7 @@ const EncrypterCase kFlipMsbCases[] = {
     {"This string contains NUL\x00 (value 0) and a \x80 (value 128)"s, "\xD4\xE8\xE9\xF3\xA0\xF3\xF4\xF2\xE9\xEE\xE7\xA0\xE3\xEF\xEE\xF4\xE1\xE9\xEE\xF3\xA0\xCE\xD5\xCC\x00\xA0\xA8\xF6\xE1\xEC\xF5\xE5\xA0\xB0\xA9\xA0\xE1\xEE\xE4\xA0\xE1\xA0\x80\xA0\xA8\xF6\xE1\xEC\xF5\xE5\xA0\xB1\xB2\xB8\xA9"s},
 };
 
-const SwapMultiplesCase kSwapMultiplesCases[] = {
+const SwapMultiplesCase SWAP_MULTIPLES_CASES[] = {
     {"Hello, World!"s, 3, "Heoll, lroWd!"s},
     {"Hello, World!"s, 0, "Hello, World!"s},
     {"We're \xBC of the way there, so \xBE is remaining."s, 3, "Wer'e \xBC fo the way there, so \xBE is remaining."s},
@@ -106,7 +106,7 @@ TEST_P(InterleaveTest, InterleavesBytes)
     EXPECT_EQ(FromBytes(DataEncrypter::Interleave(ToBytes(GetParam().input))), GetParam().expected);
 }
 
-INSTANTIATE_TEST_SUITE_P(DataEncrypterTest, InterleaveTest, ::testing::ValuesIn(kInterleaveCases));
+INSTANTIATE_TEST_SUITE_P(DataEncrypterTest, InterleaveTest, ::testing::ValuesIn(INTERLEAVE_CASES));
 
 class DeinterleaveTest : public ::testing::TestWithParam<EncrypterCase>
 {
@@ -123,7 +123,7 @@ TEST_P(DeinterleaveTest, ReversesInterleave)
     EXPECT_EQ(DataEncrypter::Deinterleave(DataEncrypter::Interleave(bytes)), bytes);
 }
 
-INSTANTIATE_TEST_SUITE_P(DataEncrypterTest, DeinterleaveTest, ::testing::ValuesIn(kDeinterleaveCases));
+INSTANTIATE_TEST_SUITE_P(DataEncrypterTest, DeinterleaveTest, ::testing::ValuesIn(DEINTERLEAVE_CASES));
 
 class FlipMsbTest : public ::testing::TestWithParam<EncrypterCase>
 {
@@ -134,7 +134,7 @@ TEST_P(FlipMsbTest, FlipsMostSignificantBit)
     EXPECT_EQ(FromBytes(DataEncrypter::FlipMsb(ToBytes(GetParam().input))), GetParam().expected);
 }
 
-INSTANTIATE_TEST_SUITE_P(DataEncrypterTest, FlipMsbTest, ::testing::ValuesIn(kFlipMsbCases));
+INSTANTIATE_TEST_SUITE_P(DataEncrypterTest, FlipMsbTest, ::testing::ValuesIn(FLIP_MSB_CASES));
 
 class SwapMultiplesTest : public ::testing::TestWithParam<SwapMultiplesCase>
 {
@@ -146,7 +146,7 @@ TEST_P(SwapMultiplesTest, SwapsBytesThatAreMultiplesOfValue)
     EXPECT_EQ(FromBytes(DataEncrypter::SwapMultiples(ToBytes(param.input), param.multiple)), param.expected);
 }
 
-INSTANTIATE_TEST_SUITE_P(DataEncrypterTest, SwapMultiplesTest, ::testing::ValuesIn(kSwapMultiplesCases));
+INSTANTIATE_TEST_SUITE_P(DataEncrypterTest, SwapMultiplesTest, ::testing::ValuesIn(SWAP_MULTIPLES_CASES));
 
 TEST(DataEncrypterTest, SwapMultiplesNegativeMultipleThrows)
 {

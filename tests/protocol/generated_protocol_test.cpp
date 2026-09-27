@@ -1,9 +1,12 @@
 #include "test_utils.hpp"
 
-#include <eolib/errors.hpp>
-#include <eolib/protocol.hpp>
+#include "eolib/errors.hpp"
+#include "eolib/protocol.hpp"
 
 #include <gtest/gtest.h>
+
+#include <cstdint>
+#include <vector>
 
 using namespace eolib;
 using namespace eolib::protocol;
@@ -13,7 +16,7 @@ namespace
 {
 
 template <typename T>
-std::vector<uint8_t> SerializeToBytes(const T& object)
+std::vector<std::uint8_t> SerializeToBytes(const T& object)
 {
     data::EoWriter writer;
     object.Serialize(writer);

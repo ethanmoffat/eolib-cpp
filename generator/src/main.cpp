@@ -17,7 +17,7 @@ using namespace eolib::generator;
 namespace
 {
 
-constexpr const char* kUsage =
+constexpr const char* USAGE =
     "Usage: eolib-protocol-gen --input <xml dir> --output <dir> [--stamp <file>] [--mode <mode>]\n"
     "\n"
     "Generates C++ code for the eo-protocol XML files found under <xml dir>. Files are only rewritten if their\n"
@@ -74,12 +74,12 @@ int main(int argc, char* argv[])
         const std::string arg = argv[i];
         if (arg == "--help" || arg == "-h")
         {
-            std::cout << kUsage;
+            std::cout << USAGE;
             return 0;
         }
         if (i + 1 >= argc)
         {
-            std::cerr << "Missing value for " << arg << "\n\n" << kUsage;
+            std::cerr << "Missing value for " << arg << "\n\n" << USAGE;
             return 2;
         }
         if (arg == "--input")
@@ -100,14 +100,14 @@ int main(int argc, char* argv[])
         }
         else
         {
-            std::cerr << "Unknown argument: " << arg << "\n\n" << kUsage;
+            std::cerr << "Unknown argument: " << arg << "\n\n" << USAGE;
             return 2;
         }
     }
 
     if (input.empty() || output.empty() || (mode != "protocol" && mode != "test-properties"))
     {
-        std::cerr << kUsage;
+        std::cerr << USAGE;
         return 2;
     }
 
