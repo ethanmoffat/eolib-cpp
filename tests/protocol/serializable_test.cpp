@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <memory>
+#include <sstream>
 #include <string>
 #include <type_traits>
 
@@ -62,6 +63,15 @@ TEST(SerializableTest, RoundTripThroughInterface)
 
     EXPECT_EQ(target->ByteSize(), 2);
     EXPECT_EQ(target->ToString(), "TestSerializable{value=12345}");
+}
+
+TEST(SerializableTest, StreamOutputUsesToString)
+{
+    TestSerializable value;
+    value.value = 7;
+    std::ostringstream stream;
+    stream << value;
+    EXPECT_EQ(stream.str(), "TestSerializable{value=7}");
 }
 
 } // namespace

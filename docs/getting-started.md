@@ -24,7 +24,8 @@ headers you need:
 ## Protocol types
 
 Generated types derive from `eolib::protocol::Serializable`, which provides `Serialize(EoWriter&)`,
-`Deserialize(EoReader&)`, `ByteSize()` and `ToString()`. Structs also have `operator==` and `operator!=`.
+`Deserialize(EoReader&)`, `ByteSize()` and `ToString()`, and can be written to a `std::ostream` with `operator<<`.
+Enums have `ToString(value)` and `operator<<` too. Structs also have `operator==` and `operator!=`.
 
 | Protocol type | C++ type |
 |---|---|
@@ -68,6 +69,18 @@ std::unique_ptr<Packet> packet = client::PacketFactory::Deserialize(PacketFamily
 if (auto* received = dynamic_cast<client::WalkPlayerClientPacket*>(packet.get()))
 {
     // use received->walk_action
+}
+```
+
+`EoReader`'s constructors copy (or take ownership of) the data. To read a buffer you own without copying it, use
+`EoReader::View`. The buffer must outlive the reader and its slices; generated types copy their fields out, so it only
+needs to live until `Deserialize` returns:
+
+```cpp
+void OnPacket(const std::string& payload)
+{
+    data::EoReader reader = data::EoReader::View(payload);
+    auto packet = client::PacketFactory::Deserialize(family, action, reader);
 }
 ```
 

@@ -4,9 +4,13 @@
 
 #include <gtest/gtest.h>
 
+#include <optional>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 using eolib::data::EoReader;
 using eolib::test::Bytes;
@@ -460,3 +464,63 @@ TEST(EoReaderTest, MoveAssignmentTransfersStateAndLeavesSourceEmpty)
 }
 
 } // namespace
+
+TEST(EoReaderTest, ViewReadsDataWithoutCopying)
+{
+    std::vector<std::uint8_t> data = {0x01, 0x02, 0x03};
+    auto reader = EoReader::View(data);
+    data[1] = 0x05;
+
+    EXPECT_EQ(reader.GetByte(), 0x01);
+    EXPECT_EQ(reader.GetByte(), 0x05);
+    EXPECT_EQ(reader.Remaining(), 1);
+}
+
+TEST(EoReaderTest, ViewOverStringView)
+{
+    const std::string data = "ab\xFF"
+                             "c";
+    auto reader = EoReader::View(std::string_view(data));
+    reader.SetChunkedReadingMode(true);
+    EXPECT_EQ(reader.GetString(), "ab");
+    reader.NextChunk();
+    EXPECT_EQ(reader.GetString(), "c");
+}
+
+TEST(EoReaderTest, ViewOverPointerAndLength)
+{
+    const std::uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
+    auto reader = EoReader::View(data, 2);
+    EXPECT_EQ(reader.GetBytes(4), (std::vector<std::uint8_t>{0x01, 0x02}));
+}
+
+TEST(EoReaderTest, ViewOverEmptyData)
+{
+    auto reader = EoReader::View(nullptr, 0);
+    EXPECT_EQ(reader.Remaining(), 0);
+    EXPECT_EQ(reader.GetByte(), 0);
+    EXPECT_EQ(reader.GetString(), "");
+    reader.SetChunkedReadingMode(true);
+    reader.NextChunk();
+    EXPECT_EQ(reader.Slice(0).Remaining(), 0);
+}
+
+TEST(EoReaderTest, SliceOfViewRefersToSameData)
+{
+    std::vector<std::uint8_t> data = {0x01, 0x02, 0x03, 0x04};
+    const auto reader = EoReader::View(data);
+    auto slice = reader.Slice(1, 2);
+    data[2] = 0x09;
+
+    EXPECT_EQ(slice.GetBytes(3), (std::vector<std::uint8_t>{0x02, 0x09}));
+}
+
+TEST(EoReaderTest, SliceOutlivesOwningReader)
+{
+    std::optional<EoReader> slice;
+    {
+        const EoReader reader(std::vector<std::uint8_t>{0x01, 0x02, 0x03});
+        slice = reader.Slice(1);
+    }
+    EXPECT_EQ(slice->GetBytes(2), (std::vector<std::uint8_t>{0x02, 0x03}));
+}

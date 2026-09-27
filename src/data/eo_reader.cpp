@@ -35,10 +35,11 @@ void CheckLength(int length)
 } // namespace
 
 EoReader::EoReader(std::vector<std::uint8_t> data)
-    : data_(std::make_shared<const std::vector<std::uint8_t>>(std::move(data))),
-      offset_(0),
-      limit_(static_cast<int>(data_->size()))
 {
+    auto owned = std::make_shared<const std::vector<std::uint8_t>>(std::move(data));
+    data_ = owned->data();
+    limit_ = static_cast<int>(owned->size());
+    owner_ = std::move(owned);
 }
 
 EoReader::EoReader(std::string_view data)
@@ -51,9 +52,24 @@ EoReader::EoReader(const std::uint8_t* data, std::size_t length)
 {
 }
 
+EoReader EoReader::View(std::string_view data) noexcept
+{
+    return View(reinterpret_cast<const std::uint8_t*>(data.data()), data.size());
+}
+
+EoReader EoReader::View(const std::uint8_t* data, std::size_t length) noexcept
+{
+    return EoReader(nullptr, data, static_cast<int>(length));
+}
+
+EoReader EoReader::View(const std::vector<std::uint8_t>& data) noexcept
+{
+    return View(data.data(), data.size());
+}
+
 EoReader::EoReader(EoReader&& other) noexcept
-    : data_(std::move(other.data_)),
-      offset_(other.offset_),
+    : owner_(std::move(other.owner_)),
+      data_(other.data_),
       limit_(other.limit_),
       position_(other.position_),
       chunked_reading_mode_(other.chunked_reading_mode_),
@@ -67,8 +83,8 @@ EoReader& EoReader::operator=(EoReader&& other) noexcept
 {
     if (this != &other)
     {
-        data_ = std::move(other.data_);
-        offset_ = other.offset_;
+        owner_ = std::move(other.owner_);
+        data_ = other.data_;
         limit_ = other.limit_;
         position_ = other.position_;
         chunked_reading_mode_ = other.chunked_reading_mode_;
@@ -79,9 +95,9 @@ EoReader& EoReader::operator=(EoReader&& other) noexcept
     return *this;
 }
 
-EoReader::EoReader(std::shared_ptr<const std::vector<std::uint8_t>> data, int offset, int limit)
-    : data_(std::move(data)),
-      offset_(offset),
+EoReader::EoReader(std::shared_ptr<const void> owner, const std::uint8_t* data, int limit) noexcept
+    : owner_(std::move(owner)),
+      data_(data),
       limit_(limit)
 {
 }
@@ -110,7 +126,7 @@ EoReader EoReader::Slice(int index, int length) const
 
     const int slice_offset = std::max(0, std::min(limit_, index));
     const int slice_limit = std::min(limit_ - slice_offset, length);
-    return EoReader(data_, offset_ + slice_offset, slice_limit);
+    return EoReader(owner_, slice_limit > 0 ? data_ + slice_offset : nullptr, slice_limit);
 }
 
 int EoReader::GetByte()
@@ -228,8 +244,7 @@ std::uint8_t EoReader::ReadByte()
 {
     if (Remaining() > 0)
     {
-        const auto index = static_cast<std::size_t>(offset_) + static_cast<std::size_t>(position_++);
-        return (*data_)[index];
+        return data_[position_++];
     }
     return 0;
 }
@@ -242,7 +257,7 @@ std::vector<std::uint8_t> EoReader::ReadBytes(int length)
         return {};
     }
 
-    const auto begin = data_->begin() + offset_ + position_;
+    const std::uint8_t* begin = data_ + position_;
     std::vector<std::uint8_t> result(begin, begin + length);
     position_ += length;
     return result;
@@ -251,8 +266,8 @@ std::vector<std::uint8_t> EoReader::ReadBytes(int length)
 void EoReader::Reset() noexcept
 {
     // A moved-from reader behaves like a reader over empty data. The data may only be null when the limit is 0.
-    data_.reset();
-    offset_ = 0;
+    owner_.reset();
+    data_ = nullptr;
     limit_ = 0;
     position_ = 0;
     chunked_reading_mode_ = false;
@@ -265,7 +280,7 @@ int EoReader::FindNextBreakIndex() const noexcept
     int i = chunk_start_;
     for (; i < limit_; ++i)
     {
-        if ((*data_)[static_cast<std::size_t>(offset_) + static_cast<std::size_t>(i)] == 0xFF)
+        if (data_[i] == 0xFF)
         {
             break;
         }

@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 
 #include <cstdint>
+#include <sstream>
 #include <vector>
 
 using namespace eolib;
@@ -95,6 +96,24 @@ TEST(GeneratedProtocolTest, ToString)
     EXPECT_EQ(MakeWalkPacket().ToString(),
               "WalkPlayerClientPacket{walk_action=WalkAction{direction=Right, timestamp=123456, "
               "coords=Coords{x=10, y=20}}}");
+}
+
+TEST(GeneratedProtocolTest, StreamOutput)
+{
+    std::ostringstream stream;
+    stream << MakeWalkPacket() << ' ' << Direction::Left << ' ' << static_cast<Direction>(99) << ' '
+           << client::ChairRequestClientPacket::SitActionDataSit();
+    EXPECT_EQ(stream.str(), MakeWalkPacket().ToString() + " Left Unrecognized(99) " +
+                                client::ChairRequestClientPacket::SitActionDataSit().ToString());
+}
+
+TEST(GeneratedProtocolTest, StreamOutputThroughBaseReference)
+{
+    const auto packet = MakeWalkPacket();
+    const Packet& base = packet;
+    std::ostringstream stream;
+    stream << base;
+    EXPECT_EQ(stream.str(), packet.ToString());
 }
 
 TEST(GeneratedProtocolTest, SwitchRoundTrip)

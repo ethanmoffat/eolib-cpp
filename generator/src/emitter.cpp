@@ -1586,13 +1586,13 @@ private:
     {
         CodeWriter header;
         BeginHeader(header);
-        Includes(header, {"eolib/export.hpp"}, {"string"});
+        Includes(header, {"eolib/export.hpp"}, {"iosfwd", "string"});
         BeginNamespace(header, file);
 
         CodeWriter source;
         source.Line(BANNER);
         source.Line();
-        Includes(source, {HeaderPath(file, "enums")}, {"string"});
+        Includes(source, {HeaderPath(file, "enums")}, {"ostream", "string"});
         BeginNamespace(source, file);
 
         for (const auto& protocol_enum : file.enums)
@@ -1629,6 +1629,15 @@ private:
                               "@return the name of the value, or \"Unrecognized(N)\" for unrecognized values.");
             header.Line("EOLIB_API std::string ToString(" + protocol_enum.name + " value);");
             header.Line();
+            header.DocComment("Writes the name of a " + protocol_enum.name +
+                              " value to a stream.\n\n"
+                              "@param stream the stream to write to.\n"
+                              "@param value the value to write the name of.\n"
+                              "@return the stream.\n"
+                              "@see ToString(" +
+                              protocol_enum.name + ")");
+            header.Line("EOLIB_API std::ostream& operator<<(std::ostream& stream, " + protocol_enum.name + " value);");
+            header.Line();
 
             source.Open("std::string ToString(" + protocol_enum.name + " value)");
             source.Open("switch (value)");
@@ -1644,6 +1653,10 @@ private:
             source.Line("return \"Unrecognized(\" + std::to_string(static_cast<int>(value)) + \")\";");
             source.Dedent();
             source.Close();
+            source.Close();
+            source.Line();
+            source.Open("std::ostream& operator<<(std::ostream& stream, " + protocol_enum.name + " value)");
+            source.Line("return stream << ToString(value);");
             source.Close();
             source.Line();
         }

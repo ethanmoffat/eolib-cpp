@@ -20,6 +20,9 @@ namespace eolib::data
 /// Reads past the end of the data (or the current chunk) do not throw; numeric reads return 0 and string/byte reads
 /// return truncated results.
 ///
+/// A reader either owns its data (the constructors, which copy or take the data) or refers to data owned by the caller
+/// (<c>View</c>, which doesn't copy). Copies and slices of a reader share its data, and are views if it is a view.
+///
 /// See: https://github.com/Cirras/eo-protocol/blob/master/docs/chunks.md
 class EOLIB_API EoReader
 {
@@ -39,6 +42,37 @@ public:
     /// @param data a pointer to the data to read.
     /// @param length the number of bytes to read from <c>data</c>.
     EoReader(const std::uint8_t* data, std::size_t length);
+
+    /// Creates a reader that refers to the specified data without copying it.
+    ///
+    /// The data must outlive the reader, and all copies and slices of it. Generated types copy their fields out of the
+    /// reader, so the data only needs to live until deserialization is complete.
+    ///
+    /// @param data the data to read, as a byte string.
+    /// @return a reader over the data.
+    static EoReader View(std::string_view data) noexcept;
+
+    /// Creates a reader that refers to the specified data without copying it.
+    ///
+    /// The data must outlive the reader, and all copies and slices of it. Generated types copy their fields out of the
+    /// reader, so the data only needs to live until deserialization is complete.
+    ///
+    /// @param data a pointer to the data to read.
+    /// @param length the number of bytes to read from <c>data</c>.
+    /// @return a reader over the data.
+    static EoReader View(const std::uint8_t* data, std::size_t length) noexcept;
+
+    /// Creates a reader that refers to the specified data without copying it.
+    ///
+    /// The data must outlive the reader, and all copies and slices of it. Generated types copy their fields out of the
+    /// reader, so the data only needs to live until deserialization is complete.
+    ///
+    /// @param data the data to read.
+    /// @return a reader over the data.
+    static EoReader View(const std::vector<std::uint8_t>& data) noexcept;
+
+    /// Deleted to prevent creating a view over a temporary, which would dangle. Use the constructor instead.
+    static EoReader View(std::vector<std::uint8_t>&& data) = delete;
 
     /// Creates a reader that shares this reader's data, with an independent copy of its position and chunked reading
     /// state.
@@ -181,10 +215,11 @@ public:
     int Position() const noexcept;
 
 private:
-    EoReader(std::shared_ptr<const std::vector<std::uint8_t>> data, int offset, int limit);
+    EoReader(std::shared_ptr<const void> owner, const std::uint8_t* data, int limit) noexcept;
 
-    std::shared_ptr<const std::vector<std::uint8_t>> data_;
-    int offset_ = 0;
+    /// Keeps owned data alive; null for views.
+    std::shared_ptr<const void> owner_;
+    const std::uint8_t* data_ = nullptr;
     int limit_ = 0;
     int position_ = 0;
     bool chunked_reading_mode_ = false;

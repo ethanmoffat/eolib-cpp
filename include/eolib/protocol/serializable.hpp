@@ -4,6 +4,7 @@
 #include "eolib/data/eo_writer.hpp"
 #include "eolib/export.hpp"
 
+#include <iosfwd>
 #include <string>
 
 namespace eolib::protocol
@@ -43,5 +44,13 @@ protected:
     Serializable& operator=(const Serializable&) = default;
     Serializable& operator=(Serializable&&) = default;
 };
+
+/// Writes a human-readable representation of an object to a stream, for debugging purposes.
+///
+/// @param stream the stream to write to.
+/// @param value the object to write.
+/// @return the stream.
+/// @see Serializable::ToString
+EOLIB_API std::ostream& operator<<(std::ostream& stream, const Serializable& value);
 
 } // namespace eolib::protocol

@@ -11,6 +11,7 @@ set(EOLIB_RUNTIME_SOURCES
     encrypt/server_verifier.cpp
     packet/packet_sequencer.cpp
     packet/sequence_start.cpp
+    protocol/serializable.cpp
     version.cpp)
 
 add_library(eolib ${EOLIB_RUNTIME_SOURCES} ${EOLIB_GENERATED_SOURCES})

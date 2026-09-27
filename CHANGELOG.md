@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `EoWriter::ToByteArray() &&` overload, which moves the data out of the writer instead of copying it.
+- `EoReader::View`, which creates a reader over data owned by the caller without copying it.
+- `operator<<` for `Serializable` (and therefore every generated struct and packet) and for generated enums, which writes the `ToString()` representation to a `std::ostream`.
 
 ### Changed
 - `DataEncrypter` and `StringEncoder` functions now transform data in place instead of returning a copy. Each function has `(std::uint8_t*, std::size_t)`, `std::vector<std::uint8_t>&` and `std::string&` overloads. `StringEncoder::EncodeInPlace`/`DecodeInPlace` are replaced by the `EncodeString`/`DecodeString` pointer overloads.
