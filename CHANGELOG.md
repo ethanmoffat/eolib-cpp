@@ -7,10 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0-alpha.1] - 2026-09-26
+## [0.1.0-beta.1] - 2026-09-26
 
 ### Added
-- Initial project structure: CMake build, `build-linux.sh`/`build-windows.ps1` convenience scripts, `scripts/install-deps.sh`/`scripts/install-deps.ps1` dependency installation scripts, `scripts/validate-release.sh` release checks, `eo-protocol` and `eo-captured-packets` submodules, code style configuration.
+- Initial project structure: CMake build, `build-linux.sh`/`build-windows.ps1` convenience scripts, `scripts/install-deps.sh`/`scripts/install-deps.ps1` dependency installation scripts, `scripts/prepare-release.sh` and `scripts/validate-release.sh` release scripts, `eo-protocol` and `eo-captured-packets` submodules, code style configuration.
 - `eolib::data` runtime: `EoReader` (chunked reading, slicing), `EoWriter` (string sanitization, padding), `NumberEncoder`, `StringEncoder` and `EoNumericLimits`.
 - `EolibError`, `SerializationError` and `DeserializationError` exception types.
 - `eolib::encrypt` runtime: `DataEncrypter` and `ServerVerifier`.
@@ -23,5 +23,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tests for the packets in `eo-captured-packets`, checking byte-exact round trips and the field values of each packet against the captured properties, and pub/map file tests.
 - Documentation: getting started guide.
 
-[Unreleased]:  https://github.com/ethanmoffat/eolib-cpp/compare/v0.1.0-alpha.1...HEAD
-[0.1.0-alpha.1]: https://github.com/ethanmoffat/eolib-cpp/releases/tag/v0.1.0-alpha.1
+[Unreleased]: https://github.com/ethanmoffat/eolib-cpp/compare/v0.1.0-beta.1...HEAD
+[0.1.0-beta.1]: https://github.com/ethanmoffat/eolib-cpp/releases/tag/v0.1.0-beta.1

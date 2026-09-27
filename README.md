@@ -40,8 +40,8 @@ Supported platforms are Windows (x64, x86), Linux (glibc and musl) and macOS (ar
 include(FetchContent)
 FetchContent_Declare(
     eolib
-    URL https://github.com/ethanmoffat/eolib-cpp/releases/download/v0.1.0-alpha.1/eolib-0.1.0-alpha.1-src.tar.gz
-    URL_HASH SHA512=<contents of eolib-0.1.0-alpha.1-src.tar.gz.sha512>)
+    URL https://github.com/ethanmoffat/eolib-cpp/releases/download/v0.1.0-beta.1/eolib-0.1.0-beta.1-src.tar.gz
+    URL_HASH SHA512=<contents of eolib-0.1.0-beta.1-src.tar.gz.sha512>)
 FetchContent_MakeAvailable(eolib)
 
 target_link_libraries(my_app PRIVATE eolib::eolib)
@@ -172,21 +172,22 @@ Generated code is not format-checked.
 
 ## Versioning and releases
 
-eolib-cpp uses [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`, with an optional `-alpha.N`,
-`-beta.N` or `-rc.N` suffix). Changes are tracked in [CHANGELOG.md](CHANGELOG.md), following
+eolib-cpp uses [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`, with an optional `-beta.N` or
+`-rc.N` suffix). Changes are tracked in [CHANGELOG.md](CHANGELOG.md), following
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 To release a new version:
 
-1. Move the `[Unreleased]` changelog entries to a new `## [x.y.z-suffix] - YYYY-MM-DD` section, and update the
-   comparison links at the bottom of `CHANGELOG.md`.
-2. Update `VERSION` in `project()` and `EOLIB_VERSION_SUFFIX` in `CMakeLists.txt`. Leave the suffix empty for
-   stable releases.
-3. Commit and push to master, then run `./scripts/validate-release.sh x.y.z-suffix`. It checks the version format,
-   the CMake version, the changelog section, date, entries and links, and that the commit is on `origin/master`.
-4. Push the tag `vx.y.z-suffix`. The release workflow runs the same validation before building anything, then
-   builds and tests the platform packages and the source archive, and publishes a GitHub release. It is marked as
-   a prerelease when the version has a suffix.
+1. Make sure the `[Unreleased]` section of `CHANGELOG.md` lists the changes.
+2. Run `./scripts/prepare-release.sh x.y.z-suffix --tag`. It updates every file that references the version
+   (`project()` `VERSION` and `EOLIB_VERSION_SUFFIX` in `CMakeLists.txt`, the changelog section and links, and the
+   version in the README, docs and consumer test), runs `scripts/validate-release.sh`, commits the changes as
+   "Release x.y.z-suffix" and creates the tag. Use `--commit` to commit without tagging, `--date` to set the
+   changelog date, or no option to only update the files for review.
+3. Push master, and wait for CI to pass.
+4. Push the tag `vx.y.z-suffix`. The release workflow runs `validate-release.sh` again, which also checks that the
+   commit is on `origin/master`, before building anything. It then builds and tests the platform packages and the
+   source archive, and publishes a GitHub release. It is marked as a prerelease when the version has a suffix.
 
 ## Documentation
 

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 
-# The numeric version is tracked in project(); pre-release identifiers (e.g. "alpha.1", "rc.2") are tracked in
+# The numeric version is tracked in project(); pre-release identifiers (e.g. "beta.1", "rc.2") are tracked in
 # EOLIB_VERSION_SUFFIX. Leave the suffix empty for a stable release. Both must match the release tag and CHANGELOG.md.
 project(
     eolib
@@ -8,7 +8,7 @@ project(
     DESCRIPTION "Core C++ library for writing Endless Online applications"
     HOMEPAGE_URL "https://github.com/ethanmoffat/eolib-cpp"
     LANGUAGES CXX)
-set(EOLIB_VERSION_SUFFIX "alpha.1")
+set(EOLIB_VERSION_SUFFIX "beta.1")
 
 if(POLICY CMP0135)
     cmake_policy(SET CMP0135 NEW)

@@ -10,7 +10,7 @@ usage() {
     echo "Usage:"
     echo "  validate-release.sh <version> [--ref <git-ref>] [--branch <branch>]"
     echo ""
-    echo "  <version>            Version to release, with or without the leading 'v' (e.g. 0.1.0-alpha.1)"
+    echo "  <version>            Version to release, with or without the leading 'v' (e.g. 0.1.0-beta.1)"
     echo "  --ref <git-ref>      Commit that will be tagged [default: HEAD]"
     echo "  --branch <branch>    Branch the commit must be on [default: origin/master]"
     echo "  -h --help            Display this message"
@@ -65,12 +65,12 @@ pass() {
     echo "ok: $1"
 }
 
-# Version format: MAJOR.MINOR.PATCH with an optional -alpha.N, -beta.N or -rc.N suffix
+# Version format: MAJOR.MINOR.PATCH with an optional -beta.N or -rc.N suffix
 #
-if [[ "${VERSION}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(alpha|beta|rc)\.[1-9][0-9]*)?$ ]]; then
+if [[ "${VERSION}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(beta|rc)\.[1-9][0-9]*)?$ ]]; then
     pass "version ${VERSION} is valid"
 else
-    fail "Version ${VERSION} must be MAJOR.MINOR.PATCH with an optional -alpha.N, -beta.N or -rc.N suffix"
+    fail "Version ${VERSION} must be MAJOR.MINOR.PATCH with an optional -beta.N or -rc.N suffix"
 fi
 
 # CMake project version
