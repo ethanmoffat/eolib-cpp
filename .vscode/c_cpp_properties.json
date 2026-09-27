@@ -1,0 +1,65 @@
+{
+    "configurations": [
+        {
+            "name": "Windows",
+            "includePath": [
+                "include",
+                "src",
+                "generator/src",
+                "tests",
+                "build/debug-x64/generated/include",
+                "build/debug-x64/_deps/googletest-src/googletest/include",
+                "build/debug-x64/_deps/nlohmann_json-src/include",
+                "build/debug-x64/_deps/eolib_pugixml-src/src"
+            ],
+            "defines": [
+                "EOLIB_STATIC_DEFINE",
+                "_WIN32" // defining _WIN32 here so intellisense works as expected
+            ],
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-msvc-x64"
+        },
+        {
+            "name": "Linux",
+            "includePath": [
+                "include",
+                "src",
+                "generator/src",
+                "tests",
+                "build/debug/generated/include",
+                "build/debug/_deps/googletest-src/googletest/include",
+                "build/debug/_deps/nlohmann_json-src/include",
+                "build/debug/_deps/eolib_pugixml-src/src"
+            ],
+            "defines": [
+                "EOLIB_STATIC_DEFINE"
+            ],
+            "compilerPath": "/usr/bin/g++",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-x64"
+        },
+        {
+            "name": "macOS",
+            "includePath": [
+                "include",
+                "src",
+                "generator/src",
+                "tests",
+                "build/debug/generated/include",
+                "build/debug/_deps/googletest-src/googletest/include",
+                "build/debug/_deps/nlohmann_json-src/include",
+                "build/debug/_deps/eolib_pugixml-src/src"
+            ],
+            "defines": [
+                "EOLIB_STATIC_DEFINE"
+            ],
+            "compilerPath": "/usr/bin/clang++",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "macos-clang-arm64"
+        }
+    ],
+    "version": 4
+}

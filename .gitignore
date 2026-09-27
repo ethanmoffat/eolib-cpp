@@ -10,7 +10,10 @@ compile_commands.json
 
 # IDE
 .vs/
-.vscode/
+.vscode/*
+!.vscode/c_cpp_properties.json
+!.vscode/launch.json
+!.vscode/tasks.json
 .idea/
 *.swp
 *.user
