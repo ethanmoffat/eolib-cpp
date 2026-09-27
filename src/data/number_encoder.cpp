@@ -7,7 +7,7 @@
 namespace eolib::data
 {
 
-std::array<std::uint8_t, 4> NumberEncoder::EncodeNumber(int number)
+std::array<std::uint8_t, 4> NumberEncoder::EncodeNumber(int number) noexcept
 {
     auto value = static_cast<unsigned int>(number);
     const auto original = value;
@@ -39,7 +39,7 @@ std::array<std::uint8_t, 4> NumberEncoder::EncodeNumber(int number)
             static_cast<std::uint8_t>(d)};
 }
 
-int NumberEncoder::DecodeNumber(const std::uint8_t* bytes, std::size_t length)
+int NumberEncoder::DecodeNumber(const std::uint8_t* bytes, std::size_t length) noexcept
 {
     unsigned int result = 0;
     const std::size_t count = std::min<std::size_t>(length, 4);
@@ -76,7 +76,7 @@ int NumberEncoder::DecodeNumber(const std::uint8_t* bytes, std::size_t length)
     return static_cast<int>(result);
 }
 
-int NumberEncoder::DecodeNumber(const std::vector<std::uint8_t>& bytes)
+int NumberEncoder::DecodeNumber(const std::vector<std::uint8_t>& bytes) noexcept
 {
     return DecodeNumber(bytes.data(), bytes.size());
 }

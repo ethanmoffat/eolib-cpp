@@ -3,7 +3,7 @@
 namespace eolib::encrypt
 {
 
-int ServerVerifier::Hash(int challenge)
+int ServerVerifier::Hash(int challenge) noexcept
 {
     const int value = challenge + 1;
     const int multiplier = (value % 9) + 1;

@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 
 #include <stdexcept>
+#include <utility>
 
 using eolib::data::EoNumericLimits;
 using eolib::data::EoWriter;
@@ -222,6 +223,25 @@ TEST(EoWriterTest, ToByteString)
     writer.AddString("foo");
     writer.AddByte(0xFF);
     EXPECT_EQ(writer.ToByteString(), std::string("foo\xFF"));
+}
+
+TEST(EoWriterTest, ToByteArrayCopiesData)
+{
+    EoWriter writer;
+    writer.AddString("foo");
+    const auto bytes = writer.ToByteArray();
+    EXPECT_EQ(bytes, Bytes("foo"));
+    EXPECT_EQ(writer.Length(), 3);
+}
+
+TEST(EoWriterTest, ToByteArrayOnRvalueMovesDataAndLeavesWriterEmpty)
+{
+    EoWriter writer;
+    writer.AddString("foo");
+    const auto bytes = std::move(writer).ToByteArray();
+    EXPECT_EQ(bytes, Bytes("foo"));
+    // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
+    EXPECT_EQ(writer.Length(), 0);
 }
 
 } // namespace

@@ -29,7 +29,7 @@ public:
     /// Gets the size of the data that this object was deserialized from.
     ///
     /// @return the deserialized size in bytes, or 0 for an object that was not deserialized.
-    virtual int ByteSize() const = 0;
+    virtual int ByteSize() const noexcept = 0;
 
     /// Gets a human-readable representation of this object, for debugging purposes.
     ///

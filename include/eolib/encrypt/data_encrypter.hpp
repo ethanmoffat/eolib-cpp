@@ -86,13 +86,13 @@ public:
     ///
     /// @param data a pointer to the data to flip.
     /// @param length the number of bytes to flip.
-    static void FlipMsb(std::uint8_t* data, std::size_t length);
+    static void FlipMsb(std::uint8_t* data, std::size_t length) noexcept;
 
     /// Flips the most significant bits of each byte in a sequence of bytes in place. Values <c>0x00</c> and
     /// <c>0x80</c> are not flipped. This function is called last when encrypting EO data, and first when decrypting it.
     ///
     /// @param data the data to flip.
-    static void FlipMsb(std::vector<std::uint8_t>& data)
+    static void FlipMsb(std::vector<std::uint8_t>& data) noexcept
     {
         FlipMsb(data.data(), data.size());
     }
@@ -101,7 +101,7 @@ public:
     /// <c>0x80</c> are not flipped. This function is called last when encrypting EO data, and first when decrypting it.
     ///
     /// @param data the data to flip.
-    static void FlipMsb(std::string& data)
+    static void FlipMsb(std::string& data) noexcept
     {
         FlipMsb(reinterpret_cast<std::uint8_t*>(data.data()), data.size());
     }

@@ -8,7 +8,7 @@ namespace eolib::data
 namespace
 {
 
-void InvertCharacters(std::uint8_t* bytes, std::size_t length)
+void InvertCharacters(std::uint8_t* bytes, std::size_t length) noexcept
 {
     bool flippy = length % 2 == 1;
 
@@ -37,13 +37,13 @@ void InvertCharacters(std::uint8_t* bytes, std::size_t length)
 
 } // namespace
 
-void StringEncoder::EncodeString(std::uint8_t* bytes, std::size_t length)
+void StringEncoder::EncodeString(std::uint8_t* bytes, std::size_t length) noexcept
 {
     InvertCharacters(bytes, length);
     std::reverse(bytes, bytes + length);
 }
 
-void StringEncoder::DecodeString(std::uint8_t* bytes, std::size_t length)
+void StringEncoder::DecodeString(std::uint8_t* bytes, std::size_t length) noexcept
 {
     std::reverse(bytes, bytes + length);
     InvertCharacters(bytes, length);

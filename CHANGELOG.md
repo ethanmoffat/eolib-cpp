@@ -7,11 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `EoWriter::ToByteArray() &&` overload, which moves the data out of the writer instead of copying it.
+
 ### Changed
 - `DataEncrypter` and `StringEncoder` functions now transform data in place instead of returning a copy. Each function has `(std::uint8_t*, std::size_t)`, `std::vector<std::uint8_t>&` and `std::string&` overloads. `StringEncoder::EncodeInPlace`/`DecodeInPlace` are replaced by the `EncodeString`/`DecodeString` pointer overloads.
+- Generated structs and packets are now `final`.
+- Functions that cannot throw are now `noexcept`, including the `Serializable::ByteSize`, `Packet::Family`, `Packet::Action` and `SequenceStart::Value` virtual functions. Implementations of these interfaces must also be `noexcept`.
 - Complete documentation for the public API: every hand-written and generated function now documents its parameters, return value and exceptions, and generated switch data members include the XML comment of the `<switch>` element.
 
 ### Fixed
+- Using a moved-from `EoReader` no longer dereferences a null pointer; it now behaves like a reader over empty data.
 - `DataEncrypter` documentation: the order of the encryption and decryption steps was incorrect.
 - Removed documentation links to `encryption.md` and `sequence.md`, which do not exist in `eo-protocol`.
 - `ServerVerifier::Hash` documentation: challenges should be no larger than 11,092,110, not `EoNumericLimits::ThreeMax`, since larger values may produce negative hashes.

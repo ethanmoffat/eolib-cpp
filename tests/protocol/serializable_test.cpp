@@ -30,7 +30,7 @@ public:
         byte_size_ = reader.Position() - start;
     }
 
-    int ByteSize() const override
+    int ByteSize() const noexcept override
     {
         return byte_size_;
     }

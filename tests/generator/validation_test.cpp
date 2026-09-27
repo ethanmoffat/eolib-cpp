@@ -25,7 +25,7 @@ TEST(GeneratorValidationTest, ValidProtocolGeneratesExpectedFiles)
 
     const auto* structs = FindOutput(outputs, "include/eolib/protocol/structs.hpp");
     ASSERT_NE(structs, nullptr);
-    EXPECT_NE(structs->content.find("class EOLIB_API Thing : public Serializable"), std::string::npos);
+    EXPECT_NE(structs->content.find("class EOLIB_API Thing final : public Serializable"), std::string::npos);
     EXPECT_NE(structs->content.find("Color color{};"), std::string::npos);
     EXPECT_NE(structs->content.find("std::string name{};"), std::string::npos);
     EXPECT_EQ(structs->content.find("name_length{}"), std::string::npos);

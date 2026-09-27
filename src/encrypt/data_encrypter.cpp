@@ -38,7 +38,7 @@ void DataEncrypter::Deinterleave(std::uint8_t* data, std::size_t length)
     }
 }
 
-void DataEncrypter::FlipMsb(std::uint8_t* data, std::size_t length)
+void DataEncrypter::FlipMsb(std::uint8_t* data, std::size_t length) noexcept
 {
     for (std::size_t i = 0; i < length; ++i)
     {

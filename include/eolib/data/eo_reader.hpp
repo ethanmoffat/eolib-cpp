@@ -40,6 +40,31 @@ public:
     /// @param length the number of bytes to read from <c>data</c>.
     EoReader(const std::uint8_t* data, std::size_t length);
 
+    /// Creates a reader that shares this reader's data, with an independent copy of its position and chunked reading
+    /// state.
+    ///
+    /// @param other the reader to copy.
+    EoReader(const EoReader& other) = default;
+
+    /// Creates a reader that takes over another reader's data and state. The other reader is left empty.
+    ///
+    /// @param other the reader to move from.
+    EoReader(EoReader&& other) noexcept;
+
+    /// Replaces this reader's data and state with a copy of another reader's. The data is shared.
+    ///
+    /// @param other the reader to copy.
+    /// @return this reader.
+    EoReader& operator=(const EoReader& other) = default;
+
+    /// Replaces this reader's data and state with another reader's. The other reader is left empty.
+    ///
+    /// @param other the reader to move from.
+    /// @return this reader.
+    EoReader& operator=(EoReader&& other) noexcept;
+
+    ~EoReader() = default;
+
     /// Creates a new reader from a slice of this reader's data, starting at the current position.
     ///
     /// The new reader shares the underlying data but has independent position and chunked reading state.
@@ -131,14 +156,14 @@ public:
     /// Gets the chunked reading mode for the reader.
     ///
     /// @return true if the reader is in chunked reading mode.
-    bool GetChunkedReadingMode() const;
+    bool GetChunkedReadingMode() const noexcept;
 
     /// Sets the chunked reading mode for the reader.
     ///
     /// In chunked reading mode, the reader will treat <c>0xFF</c> bytes as the boundaries between chunks of data.
     ///
     /// @param chunked_reading_mode true to enable chunked reading mode.
-    void SetChunkedReadingMode(bool chunked_reading_mode);
+    void SetChunkedReadingMode(bool chunked_reading_mode) noexcept;
 
     /// Moves the reader position to the start of the next chunk.
     ///
@@ -148,12 +173,12 @@ public:
     /// Gets the number of bytes remaining in the input data.
     ///
     /// @return the number of bytes remaining, or the number remaining in the current chunk in chunked reading mode.
-    int Remaining() const;
+    int Remaining() const noexcept;
 
     /// Gets the current position in the input data.
     ///
     /// @return the number of bytes read from the start of the input data.
-    int Position() const;
+    int Position() const noexcept;
 
 private:
     EoReader(std::shared_ptr<const std::vector<std::uint8_t>> data, int offset, int limit);
@@ -168,7 +193,8 @@ private:
 
     std::uint8_t ReadByte();
     std::vector<std::uint8_t> ReadBytes(int length);
-    int FindNextBreakIndex() const;
+    int FindNextBreakIndex() const noexcept;
+    void Reset() noexcept;
 };
 
 } // namespace eolib::data

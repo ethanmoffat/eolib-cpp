@@ -19,7 +19,7 @@ public:
     /// @param challenge the challenge value; should be no larger than 11,092,110, since larger values may produce
     ///                  negative hashes that can't be represented in the EO protocol.
     /// @return the hashed challenge value.
-    static int Hash(int challenge);
+    static int Hash(int challenge) noexcept;
 };
 
 } // namespace eolib::encrypt

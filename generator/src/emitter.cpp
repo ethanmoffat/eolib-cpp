@@ -192,7 +192,7 @@ public:
             declaration.DocComment(*comment);
         }
         const std::string base = packet ? "net::Packet" : "Serializable";
-        declaration.Line("class EOLIB_API " + class_name_ + " : public " + base);
+        declaration.Line("class EOLIB_API " + class_name_ + " final : public " + base);
         declaration.Line("{");
         declaration.Line("public:");
         declaration.Indent();
@@ -217,12 +217,12 @@ public:
         if (packet)
         {
             declaration.DocComment("Gets the packet family associated with this packet.\n\n@return the packet family.");
-            declaration.Open("PacketFamily Family() const override");
+            declaration.Open("PacketFamily Family() const noexcept override");
             declaration.Line("return FAMILY;");
             declaration.Close();
             declaration.Line();
             declaration.DocComment("Gets the packet action associated with this packet.\n\n@return the packet action.");
-            declaration.Open("PacketAction Action() const override");
+            declaration.Open("PacketAction Action() const noexcept override");
             declaration.Line("return ACTION;");
             declaration.Close();
             declaration.Line();
@@ -230,7 +230,7 @@ public:
 
         declaration.DocComment("Gets the size of the data that this object was deserialized from.\n\n"
                                "@return the deserialized size in bytes, or 0 for an object that was not deserialized.");
-        declaration.Line("int ByteSize() const override;");
+        declaration.Line("int ByteSize() const noexcept override;");
         declaration.Line();
         declaration.DocComment("Serializes this object to the provided writer.\n\n"
                                "@param writer the writer that the data will be written to.\n"
@@ -266,7 +266,7 @@ public:
 
         definitions.Append(nested_definitions_);
 
-        definitions.Open("int " + qualified_name_ + "::ByteSize() const");
+        definitions.Open("int " + qualified_name_ + "::ByteSize() const noexcept");
         definitions.Line("return byte_size_;");
         definitions.Close();
         definitions.Line();

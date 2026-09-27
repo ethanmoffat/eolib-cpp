@@ -20,10 +20,19 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 using namespace eolib;
 using namespace eolib::protocol::net;
+
+static_assert(std::is_final_v<server::WalkPlayerServerPacket>);
+static_assert(std::is_final_v<protocol::pub::Eif>);
+static_assert(std::is_nothrow_move_constructible_v<server::CharacterReplyServerPacket>);
+static_assert(std::is_nothrow_move_assignable_v<server::CharacterReplyServerPacket>);
+static_assert(std::is_nothrow_move_constructible_v<protocol::pub::Eif>);
+static_assert(noexcept(std::declval<const Packet&>().Family()));
+static_assert(noexcept(std::declval<const protocol::Serializable&>().ByteSize()));
 
 namespace
 {

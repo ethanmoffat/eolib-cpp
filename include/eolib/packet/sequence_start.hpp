@@ -43,7 +43,7 @@ public:
     /// Gets the sequence start value.
     ///
     /// @return the sequence start value.
-    virtual int Value() const = 0;
+    virtual int Value() const noexcept = 0;
 
 protected:
     SequenceStart() = default;
@@ -60,7 +60,7 @@ public:
     /// Gets the sequence start value.
     ///
     /// @return the sequence start value.
-    int Value() const override;
+    int Value() const noexcept override;
 };
 
 /// A sequence start sent in the <c>InitInitServerPacket</c> (connection initialization).
@@ -72,7 +72,7 @@ public:
     /// @param seq1 the <c>seq1</c> byte value.
     /// @param seq2 the <c>seq2</c> byte value.
     /// @return the sequence start.
-    static InitSequenceStart FromInitValues(int seq1, int seq2);
+    static InitSequenceStart FromInitValues(int seq1, int seq2) noexcept;
 
     /// The exclusive upper bound of generated values.
     static constexpr int MaxValue = 1757;
@@ -104,20 +104,20 @@ public:
     /// Gets the sequence start value.
     ///
     /// @return the sequence start value.
-    int Value() const override;
+    int Value() const noexcept override;
 
     /// Gets the <c>seq1</c> byte value sent in the <c>InitInitServerPacket</c>.
     ///
     /// @return the <c>seq1</c> value.
-    int Seq1() const;
+    int Seq1() const noexcept;
 
     /// Gets the <c>seq2</c> byte value sent in the <c>InitInitServerPacket</c>.
     ///
     /// @return the <c>seq2</c> value.
-    int Seq2() const;
+    int Seq2() const noexcept;
 
 private:
-    InitSequenceStart(int value, int seq1, int seq2);
+    InitSequenceStart(int value, int seq1, int seq2) noexcept;
 
     int value_;
     int seq1_;
@@ -133,7 +133,7 @@ public:
     /// @param seq1 the <c>seq1</c> short value.
     /// @param seq2 the <c>seq2</c> char value.
     /// @return the sequence start.
-    static PingSequenceStart FromPingValues(int seq1, int seq2);
+    static PingSequenceStart FromPingValues(int seq1, int seq2) noexcept;
 
     /// The exclusive upper bound of generated values.
     static constexpr int MaxValue = 1757;
@@ -161,20 +161,20 @@ public:
     /// Gets the sequence start value.
     ///
     /// @return the sequence start value.
-    int Value() const override;
+    int Value() const noexcept override;
 
     /// Gets the <c>seq1</c> short value sent in the <c>ConnectionPlayerServerPacket</c>.
     ///
     /// @return the <c>seq1</c> value.
-    int Seq1() const;
+    int Seq1() const noexcept;
 
     /// Gets the <c>seq2</c> char value sent in the <c>ConnectionPlayerServerPacket</c>.
     ///
     /// @return the <c>seq2</c> value.
-    int Seq2() const;
+    int Seq2() const noexcept;
 
 private:
-    PingSequenceStart(int value, int seq1, int seq2);
+    PingSequenceStart(int value, int seq1, int seq2) noexcept;
 
     int value_;
     int seq1_;
@@ -189,7 +189,7 @@ public:
     ///
     /// @param value the sequence start value.
     /// @return the sequence start.
-    static AccountReplySequenceStart FromValue(int value);
+    static AccountReplySequenceStart FromValue(int value) noexcept;
 
     /// The exclusive upper bound of generated values.
     static constexpr int MaxValue = 240;
@@ -213,10 +213,10 @@ public:
     /// Gets the sequence start value.
     ///
     /// @return the sequence start value.
-    int Value() const override;
+    int Value() const noexcept override;
 
 private:
-    explicit AccountReplySequenceStart(int value);
+    explicit AccountReplySequenceStart(int value) noexcept;
 
     int value_;
 };

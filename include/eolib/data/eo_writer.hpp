@@ -102,22 +102,29 @@ public:
     /// See: https://github.com/Cirras/eo-protocol/blob/master/docs/chunks.md#sanitization
     ///
     /// @return true if string sanitization is enabled.
-    bool GetStringSanitization() const;
+    bool GetStringSanitization() const noexcept;
 
     /// Sets the string sanitization mode for the writer.
     ///
     /// @param string_sanitization true to enable string sanitization.
-    void SetStringSanitization(bool string_sanitization);
+    void SetStringSanitization(bool string_sanitization) noexcept;
 
     /// Gets the length of the writer data.
     ///
     /// @return the number of bytes written.
-    int Length() const;
+    int Length() const noexcept;
 
     /// Gets a copy of the writer data as a byte array.
     ///
     /// @return a copy of the bytes written.
-    std::vector<std::uint8_t> ToByteArray() const;
+    std::vector<std::uint8_t> ToByteArray() const&;
+
+    /// Moves the writer data out as a byte array, avoiding a copy. The writer is left empty.
+    ///
+    /// Example: <c>auto bytes = std::move(writer).ToByteArray();</c>
+    ///
+    /// @return the bytes written.
+    std::vector<std::uint8_t> ToByteArray() &&;
 
     /// Gets a copy of the writer data as a byte string.
     ///
@@ -127,7 +134,7 @@ public:
     /// Gets a read-only view of the writer data.
     ///
     /// @return a reference to the bytes written, valid until the writer is modified or destroyed.
-    const std::vector<std::uint8_t>& Data() const;
+    const std::vector<std::uint8_t>& Data() const noexcept;
 
 private:
     std::vector<std::uint8_t> data_;

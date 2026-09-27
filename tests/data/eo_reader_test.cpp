@@ -5,6 +5,8 @@
 #include <gtest/gtest.h>
 
 #include <stdexcept>
+#include <type_traits>
+#include <utility>
 
 using eolib::data::EoReader;
 using eolib::test::Bytes;
@@ -402,6 +404,59 @@ TEST(EoReaderTest, ChunkedReadingDoubleReadReadsExpectedData)
     reader.NextChunk();
     EXPECT_EQ(reader.GetChar(), 123);
     EXPECT_EQ(reader.GetShort(), 12345);
+}
+
+static_assert(std::is_nothrow_move_constructible_v<EoReader>);
+static_assert(std::is_nothrow_move_assignable_v<EoReader>);
+
+TEST(EoReaderTest, CopySharesDataWithIndependentPosition)
+{
+    auto reader = CreateReader({0x01, 0x02, 0x03});
+    reader.GetByte();
+
+    auto copy = reader;
+    EXPECT_EQ(copy.GetByte(), 0x02);
+    EXPECT_EQ(copy.Position(), 2);
+    EXPECT_EQ(reader.Position(), 1);
+    EXPECT_EQ(reader.GetByte(), 0x02);
+}
+
+TEST(EoReaderTest, MoveConstructorTransfersStateAndLeavesSourceEmpty)
+{
+    auto reader = CreateReader({0x01, 0x02, 0x03});
+    reader.GetByte();
+
+    EoReader moved(std::move(reader));
+    EXPECT_EQ(moved.Position(), 1);
+    EXPECT_EQ(moved.GetByte(), 0x02);
+
+    // NOLINTBEGIN(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
+    EXPECT_EQ(reader.Position(), 0);
+    EXPECT_EQ(reader.Remaining(), 0);
+    EXPECT_EQ(reader.GetByte(), 0x00);
+    EXPECT_TRUE(reader.GetBytes(3).empty());
+    EXPECT_EQ(reader.GetString(), "");
+    EXPECT_EQ(reader.Slice().Remaining(), 0);
+    reader.SetChunkedReadingMode(true);
+    reader.NextChunk();
+    EXPECT_EQ(reader.Remaining(), 0);
+    // NOLINTEND(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
+}
+
+TEST(EoReaderTest, MoveAssignmentTransfersStateAndLeavesSourceEmpty)
+{
+    auto reader = CreateReader({0x01, 0x02, 0x03});
+    reader.GetByte();
+
+    auto target = CreateReader({0x04});
+    target = std::move(reader);
+    EXPECT_EQ(target.Position(), 1);
+    EXPECT_EQ(target.GetByte(), 0x02);
+
+    // NOLINTBEGIN(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
+    EXPECT_EQ(reader.Remaining(), 0);
+    EXPECT_EQ(reader.GetByte(), 0x00);
+    // NOLINTEND(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
 }
 
 } // namespace

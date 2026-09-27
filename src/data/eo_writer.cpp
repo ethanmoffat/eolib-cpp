@@ -5,6 +5,7 @@
 #include "eolib/data/string_encoder.hpp"
 
 #include <stdexcept>
+#include <utility>
 
 namespace eolib::data
 {
@@ -129,24 +130,31 @@ void EoWriter::AddFixedEncodedString(std::string_view str, int length, bool padd
     AddBytes(bytes);
 }
 
-bool EoWriter::GetStringSanitization() const
+bool EoWriter::GetStringSanitization() const noexcept
 {
     return string_sanitization_;
 }
 
-void EoWriter::SetStringSanitization(bool string_sanitization)
+void EoWriter::SetStringSanitization(bool string_sanitization) noexcept
 {
     string_sanitization_ = string_sanitization;
 }
 
-int EoWriter::Length() const
+int EoWriter::Length() const noexcept
 {
     return static_cast<int>(data_.size());
 }
 
-std::vector<std::uint8_t> EoWriter::ToByteArray() const
+std::vector<std::uint8_t> EoWriter::ToByteArray() const&
 {
     return data_;
+}
+
+std::vector<std::uint8_t> EoWriter::ToByteArray() &&
+{
+    std::vector<std::uint8_t> result = std::move(data_);
+    data_.clear();
+    return result;
 }
 
 std::string EoWriter::ToByteString() const
@@ -154,7 +162,7 @@ std::string EoWriter::ToByteString() const
     return std::string(data_.begin(), data_.end());
 }
 
-const std::vector<std::uint8_t>& EoWriter::Data() const
+const std::vector<std::uint8_t>& EoWriter::Data() const noexcept
 {
     return data_;
 }

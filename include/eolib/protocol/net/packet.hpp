@@ -14,12 +14,12 @@ public:
     /// Gets the packet family associated with this packet.
     ///
     /// @return the packet family.
-    virtual PacketFamily Family() const = 0;
+    virtual PacketFamily Family() const noexcept = 0;
 
     /// Gets the packet action associated with this packet.
     ///
     /// @return the packet action.
-    virtual PacketAction Action() const = 0;
+    virtual PacketAction Action() const noexcept = 0;
 };
 
 } // namespace eolib::protocol::net

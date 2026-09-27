@@ -26,12 +26,12 @@ public:
     ///
     /// @param bytes a pointer to the bytes to encode.
     /// @param length the number of bytes to encode.
-    static void EncodeString(std::uint8_t* bytes, std::size_t length);
+    static void EncodeString(std::uint8_t* bytes, std::size_t length) noexcept;
 
     /// Encodes a sequence of bytes in place.
     ///
     /// @param bytes the bytes to encode.
-    static void EncodeString(std::vector<std::uint8_t>& bytes)
+    static void EncodeString(std::vector<std::uint8_t>& bytes) noexcept
     {
         EncodeString(bytes.data(), bytes.size());
     }
@@ -39,7 +39,7 @@ public:
     /// Encodes a string in place.
     ///
     /// @param str the string to encode.
-    static void EncodeString(std::string& str)
+    static void EncodeString(std::string& str) noexcept
     {
         EncodeString(reinterpret_cast<std::uint8_t*>(str.data()), str.size());
     }
@@ -48,12 +48,12 @@ public:
     ///
     /// @param bytes a pointer to the bytes to decode.
     /// @param length the number of bytes to decode.
-    static void DecodeString(std::uint8_t* bytes, std::size_t length);
+    static void DecodeString(std::uint8_t* bytes, std::size_t length) noexcept;
 
     /// Decodes a sequence of bytes in place.
     ///
     /// @param bytes the bytes to decode.
-    static void DecodeString(std::vector<std::uint8_t>& bytes)
+    static void DecodeString(std::vector<std::uint8_t>& bytes) noexcept
     {
         DecodeString(bytes.data(), bytes.size());
     }
@@ -61,7 +61,7 @@ public:
     /// Decodes a string in place.
     ///
     /// @param str the string to decode.
-    static void DecodeString(std::string& str)
+    static void DecodeString(std::string& str) noexcept
     {
         DecodeString(reinterpret_cast<std::uint8_t*>(str.data()), str.size());
     }
