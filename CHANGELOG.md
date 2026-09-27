@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Complete documentation for the public API: every hand-written and generated function now documents its parameters, return value and exceptions, and generated switch data members include the XML comment of the `<switch>` element.
+
+### Fixed
+- `ServerVerifier::Hash` documentation: challenges should be no larger than 11,092,110, not `EoNumericLimits::ThreeMax`, since larger values may produce negative hashes.
+
 ## [0.1.0-beta.1] - 2026-09-26
 
 ### Added

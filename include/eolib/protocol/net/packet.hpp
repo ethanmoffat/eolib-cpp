@@ -12,9 +12,13 @@ class EOLIB_API Packet : public Serializable
 {
 public:
     /// Gets the packet family associated with this packet.
+    ///
+    /// @return the packet family.
     virtual PacketFamily Family() const = 0;
 
     /// Gets the packet action associated with this packet.
+    ///
+    /// @return the packet action.
     virtual PacketAction Action() const = 0;
 };
 

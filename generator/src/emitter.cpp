@@ -199,7 +199,10 @@ public:
 
         if (packet)
         {
+            declaration.DocComment("The packet family associated with this packet.");
             declaration.Line("static constexpr PacketFamily FAMILY = PacketFamily::" + packet->family + ";");
+            declaration.Line();
+            declaration.DocComment("The packet action associated with this packet.");
             declaration.Line("static constexpr PacketAction ACTION = PacketAction::" + packet->action + ";");
             declaration.Line();
         }
@@ -213,33 +216,45 @@ public:
 
         if (packet)
         {
-            declaration.DocComment("Gets the packet family associated with this packet.");
+            declaration.DocComment("Gets the packet family associated with this packet.\n\n@return the packet family.");
             declaration.Open("PacketFamily Family() const override");
             declaration.Line("return FAMILY;");
             declaration.Close();
             declaration.Line();
-            declaration.DocComment("Gets the packet action associated with this packet.");
+            declaration.DocComment("Gets the packet action associated with this packet.\n\n@return the packet action.");
             declaration.Open("PacketAction Action() const override");
             declaration.Line("return ACTION;");
             declaration.Close();
             declaration.Line();
         }
 
-        declaration.DocComment(
-            "Gets the size of the data that this object was deserialized from, or 0 if it was not deserialized.");
+        declaration.DocComment("Gets the size of the data that this object was deserialized from.\n\n"
+                               "@return the deserialized size in bytes, or 0 for an object that was not deserialized.");
         declaration.Line("int ByteSize() const override;");
         declaration.Line();
-        declaration.DocComment("Serializes this object to the provided writer.");
-        declaration.DocComment("@throws SerializationError if the object's data is invalid for serialization.");
+        declaration.DocComment("Serializes this object to the provided writer.\n\n"
+                               "@param writer the writer that the data will be written to.\n"
+                               "@throws SerializationError if the object's data is invalid for serialization.");
         declaration.Line("void Serialize(data::EoWriter& writer) const override;");
         declaration.Line();
-        declaration.DocComment("Deserializes this object from the provided reader, replacing its current data.");
+        declaration.DocComment("Deserializes this object from the provided reader, replacing its current data.\n\n"
+                               "@param reader the reader that the data will be read from.");
         declaration.Line("void Deserialize(data::EoReader& reader) override;");
         declaration.Line();
-        declaration.DocComment("Gets a human-readable representation of this object.");
+        declaration.DocComment("Gets a human-readable representation of this object, for debugging purposes.\n\n"
+                               "@return the object's fields and values, as a string.");
         declaration.Line("std::string ToString() const override;");
         declaration.Line();
+        declaration.DocComment("Compares this object with another for equality. The deserialized byte size is not "
+                               "compared.\n\n"
+                               "@param other the object to compare with.\n"
+                               "@return true if all fields are equal, otherwise false.");
         declaration.Line("bool operator==(const " + class_name_ + "& other) const;");
+        declaration.Line();
+        declaration.DocComment("Compares this object with another for inequality. The deserialized byte size is not "
+                               "compared.\n\n"
+                               "@param other the object to compare with.\n"
+                               "@return true if any field differs, otherwise false.");
         declaration.Line("bool operator!=(const " + class_name_ + "& other) const;");
         declaration.Dedent();
         declaration.Line();
@@ -1264,10 +1279,15 @@ private:
             }
         }
 
+        std::string data_docs = "Data associated with the `" + field.identifier + "` field.";
+        if (instruction.comment)
+        {
+            data_docs += "\n\n" + *instruction.comment;
+        }
         members_.DocComment("Data associated with different values of the `" + field.identifier + "` field.");
         members_.Line("using " + data_type_name + " = std::variant<" + Join(cases.alternatives, ", ") + ">;");
         members_.Line();
-        members_.DocComment("Data associated with the `" + field.identifier + "` field.");
+        members_.DocComment(data_docs);
         members_.Line(data_type_name + " " + data_field_name + "{};");
         members_.Line();
 
@@ -1586,7 +1606,9 @@ private:
             header.Line("};");
             header.Line();
             header.DocComment("Gets the name of a " + protocol_enum.name +
-                              " value, or \"Unrecognized(N)\" for unrecognized values.");
+                              " value.\n\n"
+                              "@param value the value to get the name of.\n"
+                              "@return the name of the value, or \"Unrecognized(N)\" for unrecognized values.");
             header.Line("EOLIB_API std::string ToString(" + protocol_enum.name + " value);");
             header.Line();
 
@@ -1855,12 +1877,17 @@ private:
         header.Line();
         header.DocComment("Creates a default-initialized " + side +
                           " packet with the specified family and action.\n\n"
+                          "@param family the packet family.\n"
+                          "@param action the packet action.\n"
                           "@return the packet, or nullptr if no " +
                           side + " packet has the specified family and action.");
         header.Line("static std::unique_ptr<Packet> Create(PacketFamily family, PacketAction action);");
         header.Line();
         header.DocComment("Creates a " + side +
                           " packet with the specified family and action, and deserializes it from the reader.\n\n"
+                          "@param family the packet family.\n"
+                          "@param action the packet action.\n"
+                          "@param reader the reader that the packet data will be read from.\n"
                           "@return the packet, or nullptr if no " +
                           side + " packet has the specified family and action.");
         header.Line("static std::unique_ptr<Packet> Deserialize(PacketFamily family, PacketAction action, "

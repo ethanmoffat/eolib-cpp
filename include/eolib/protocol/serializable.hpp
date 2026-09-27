@@ -16,18 +16,24 @@ public:
     virtual ~Serializable() = default;
 
     /// Serializes this object to the provided writer.
+    ///
+    /// @param writer the writer that the data will be written to.
     /// @throws SerializationError if the object's data is invalid for serialization.
     virtual void Serialize(data::EoWriter& writer) const = 0;
 
     /// Deserializes this object from the provided reader, replacing its current data.
+    ///
+    /// @param reader the reader that the data will be read from.
     virtual void Deserialize(data::EoReader& reader) = 0;
 
     /// Gets the size of the data that this object was deserialized from.
     ///
-    /// For objects that were not deserialized, this value is 0.
+    /// @return the deserialized size in bytes, or 0 for an object that was not deserialized.
     virtual int ByteSize() const = 0;
 
     /// Gets a human-readable representation of this object, for debugging purposes.
+    ///
+    /// @return the object's fields and values, as a string.
     virtual std::string ToString() const = 0;
 
 protected:

@@ -2,16 +2,27 @@
 
 #include "eolib/export.hpp"
 
+/// The major version of eolib.
 #define EOLIB_VERSION_MAJOR @PROJECT_VERSION_MAJOR@
+
+/// The minor version of eolib.
 #define EOLIB_VERSION_MINOR @PROJECT_VERSION_MINOR@
+
+/// The patch version of eolib.
 #define EOLIB_VERSION_PATCH @PROJECT_VERSION_PATCH@
+
+/// The pre-release identifier of eolib (e.g. "beta.1"), or an empty string for a stable release.
 #define EOLIB_VERSION_SUFFIX "@EOLIB_VERSION_SUFFIX@"
+
+/// The full SemVer version string of the eolib headers (e.g. "1.2.3-beta.1").
 #define EOLIB_VERSION_STRING "@EOLIB_VERSION_FULL@"
 
 namespace eolib
 {
 
 /// Gets the full SemVer version string of the eolib library that the application is linked against.
+///
+/// @return the version string, e.g. "1.2.3-beta.1".
 EOLIB_API const char* GetVersionString();
 
 } // namespace eolib

@@ -12,7 +12,11 @@ namespace eolib::packet
 namespace detail
 {
 
-/// Returns a uniformly distributed random value in the range <c>[0, bound)</c>. Returns 0 if bound is not positive.
+/// Gets a uniformly distributed random value in the range <c>[0, bound)</c>.
+///
+/// @param rng the uniform random bit generator to use.
+/// @param bound the exclusive upper bound.
+/// @return the random value, or 0 if the bound is not positive.
 template <typename Urbg>
 int RandomBelow(Urbg& rng, int bound)
 {
@@ -24,6 +28,8 @@ int RandomBelow(Urbg& rng, int bound)
 }
 
 /// Gets a thread-local random engine, seeded from <c>std::random_device</c>.
+///
+/// @return the random engine for the calling thread.
 EOLIB_API std::mt19937& DefaultRandomEngine();
 
 } // namespace detail
@@ -37,6 +43,8 @@ public:
     virtual ~SequenceStart() = default;
 
     /// Gets the sequence start value.
+    ///
+    /// @return the sequence start value.
     virtual int Value() const = 0;
 
 protected:
@@ -51,6 +59,9 @@ protected:
 class EOLIB_API ZeroSequenceStart final : public SequenceStart
 {
 public:
+    /// Gets the sequence start value.
+    ///
+    /// @return the sequence start value.
     int Value() const override;
 };
 
@@ -59,12 +70,19 @@ class EOLIB_API InitSequenceStart final : public SequenceStart
 {
 public:
     /// Creates an instance from the <c>seq1</c> and <c>seq2</c> values in the <c>InitInitServerPacket</c>.
+    ///
+    /// @param seq1 the <c>seq1</c> byte value.
+    /// @param seq2 the <c>seq2</c> byte value.
+    /// @return the sequence start.
     static InitSequenceStart FromInitValues(int seq1, int seq2);
 
     /// The exclusive upper bound of generated values.
     static constexpr int MaxValue = 1757;
 
     /// Generates an instance with a random value in the range <c>[0, MaxValue)</c>.
+    ///
+    /// @param rng the uniform random bit generator to use, e.g. <c>std::mt19937</c>.
+    /// @return the generated instance.
     template <typename Urbg>
     static InitSequenceStart Generate(Urbg& rng)
     {
@@ -79,15 +97,25 @@ public:
         return InitSequenceStart(value, seq1, seq2);
     }
 
-    /// Generates an instance using the default random engine.
+    /// Generates an instance with a random value in the range <c>[0, MaxValue)</c>, using a thread-local random
+    /// engine.
+    ///
+    /// @return the generated instance.
     static InitSequenceStart Generate();
 
+    /// Gets the sequence start value.
+    ///
+    /// @return the sequence start value.
     int Value() const override;
 
     /// Gets the <c>seq1</c> byte value sent in the <c>InitInitServerPacket</c>.
+    ///
+    /// @return the <c>seq1</c> value.
     int Seq1() const;
 
     /// Gets the <c>seq2</c> byte value sent in the <c>InitInitServerPacket</c>.
+    ///
+    /// @return the <c>seq2</c> value.
     int Seq2() const;
 
 private:
@@ -103,12 +131,19 @@ class EOLIB_API PingSequenceStart final : public SequenceStart
 {
 public:
     /// Creates an instance from the <c>seq1</c> and <c>seq2</c> values in the <c>ConnectionPlayerServerPacket</c>.
+    ///
+    /// @param seq1 the <c>seq1</c> short value.
+    /// @param seq2 the <c>seq2</c> char value.
+    /// @return the sequence start.
     static PingSequenceStart FromPingValues(int seq1, int seq2);
 
     /// The exclusive upper bound of generated values.
     static constexpr int MaxValue = 1757;
 
     /// Generates an instance with a random value in the range <c>[0, MaxValue)</c>.
+    ///
+    /// @param rng the uniform random bit generator to use, e.g. <c>std::mt19937</c>.
+    /// @return the generated instance.
     template <typename Urbg>
     static PingSequenceStart Generate(Urbg& rng)
     {
@@ -119,15 +154,25 @@ public:
         return PingSequenceStart(value, seq1, seq2);
     }
 
-    /// Generates an instance using the default random engine.
+    /// Generates an instance with a random value in the range <c>[0, MaxValue)</c>, using a thread-local random
+    /// engine.
+    ///
+    /// @return the generated instance.
     static PingSequenceStart Generate();
 
+    /// Gets the sequence start value.
+    ///
+    /// @return the sequence start value.
     int Value() const override;
 
     /// Gets the <c>seq1</c> short value sent in the <c>ConnectionPlayerServerPacket</c>.
+    ///
+    /// @return the <c>seq1</c> value.
     int Seq1() const;
 
     /// Gets the <c>seq2</c> char value sent in the <c>ConnectionPlayerServerPacket</c>.
+    ///
+    /// @return the <c>seq2</c> value.
     int Seq2() const;
 
 private:
@@ -143,21 +188,33 @@ class EOLIB_API AccountReplySequenceStart final : public SequenceStart
 {
 public:
     /// Creates an instance with the specified value.
+    ///
+    /// @param value the sequence start value.
+    /// @return the sequence start.
     static AccountReplySequenceStart FromValue(int value);
 
     /// The exclusive upper bound of generated values.
     static constexpr int MaxValue = 240;
 
     /// Generates an instance with a random value in the range <c>[0, MaxValue)</c>.
+    ///
+    /// @param rng the uniform random bit generator to use, e.g. <c>std::mt19937</c>.
+    /// @return the generated instance.
     template <typename Urbg>
     static AccountReplySequenceStart Generate(Urbg& rng)
     {
         return AccountReplySequenceStart(detail::RandomBelow(rng, MaxValue));
     }
 
-    /// Generates an instance using the default random engine.
+    /// Generates an instance with a random value in the range <c>[0, MaxValue)</c>, using a thread-local random
+    /// engine.
+    ///
+    /// @return the generated instance.
     static AccountReplySequenceStart Generate();
 
+    /// Gets the sequence start value.
+    ///
+    /// @return the sequence start value.
     int Value() const override;
 
 private:

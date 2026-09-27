@@ -25,77 +25,134 @@ class EOLIB_API EoReader
 {
 public:
     /// Creates a reader over the specified data.
+    ///
+    /// @param data the data to read.
     explicit EoReader(std::vector<std::uint8_t> data);
 
     /// Creates a reader over a copy of the specified data.
+    ///
+    /// @param data the data to read, as a byte string.
     explicit EoReader(std::string_view data);
 
     /// Creates a reader over a copy of the specified data.
+    ///
+    /// @param data a pointer to the data to read.
+    /// @param length the number of bytes to read from <c>data</c>.
     EoReader(const std::uint8_t* data, std::size_t length);
 
     /// Creates a new reader from a slice of this reader's data, starting at the current position.
     ///
     /// The new reader shares the underlying data but has independent position and chunked reading state.
+    ///
+    /// @return the new reader, covering the remaining data.
     EoReader Slice() const;
 
     /// Creates a new reader from a slice of this reader's data, starting at the specified index.
+    ///
+    /// The new reader shares the underlying data but has independent position and chunked reading state.
+    ///
+    /// @param index the index in this reader's data where the slice starts. Indexes past the end produce an empty
+    ///              reader.
+    /// @return the new reader, covering the data from <c>index</c> to the end.
     /// @throws std::invalid_argument if the index is negative.
     EoReader Slice(int index) const;
 
     /// Creates a new reader from a slice of this reader's data, with the specified index and length.
+    ///
+    /// The new reader shares the underlying data but has independent position and chunked reading state.
+    ///
+    /// @param index the index in this reader's data where the slice starts.
+    /// @param length the length of the slice. The slice is truncated if it extends past the end of the data.
+    /// @return the new reader, covering the specified range.
     /// @throws std::invalid_argument if the index or length is negative.
     EoReader Slice(int index, int length) const;
 
     /// Reads a raw byte from the input data.
+    ///
+    /// @return the byte value, or 0 if there is no data remaining.
     int GetByte();
 
     /// Reads an array of raw bytes from the input data.
+    ///
+    /// @param length the number of bytes to read.
+    /// @return the bytes read, which may be fewer than <c>length</c> if there isn't enough data remaining.
     std::vector<std::uint8_t> GetBytes(int length);
 
     /// Reads an encoded 1-byte integer from the input data.
+    ///
+    /// @return the decoded value. If fewer bytes remain, it is decoded from the bytes that are available (0 if there
+    ///         are none).
     int GetChar();
 
     /// Reads an encoded 2-byte integer from the input data.
+    ///
+    /// @return the decoded value. If fewer bytes remain, it is decoded from the bytes that are available (0 if there
+    ///         are none).
     int GetShort();
 
     /// Reads an encoded 3-byte integer from the input data.
+    ///
+    /// @return the decoded value. If fewer bytes remain, it is decoded from the bytes that are available (0 if there
+    ///         are none).
     int GetThree();
 
     /// Reads an encoded 4-byte integer from the input data.
+    ///
+    /// @return the decoded value. If fewer bytes remain, it is decoded from the bytes that are available (0 if there
+    ///         are none).
     int GetInt();
 
-    /// Reads a string from the input data (all remaining data, or the rest of the current chunk).
+    /// Reads a string from the input data.
+    ///
+    /// @return all remaining data, or the rest of the current chunk in chunked reading mode, as a string.
     std::string GetString();
 
     /// Reads a fixed-length string from the input data.
-    /// @param padded true if the string is padded with trailing <c>0xFF</c> bytes.
+    ///
+    /// @param length the length of the string.
+    /// @param padded true if the string is padded with trailing <c>0xFF</c> bytes, which are removed.
+    /// @return the string, which may be shorter than <c>length</c> if there isn't enough data remaining.
     /// @throws std::invalid_argument if the length is negative.
     std::string GetFixedString(int length, bool padded = false);
 
-    /// Reads an encoded string from the input data (all remaining data, or the rest of the current chunk).
+    /// Reads an encoded string from the input data.
+    ///
+    /// @return all remaining data, or the rest of the current chunk in chunked reading mode, as a decoded string.
     std::string GetEncodedString();
 
     /// Reads a fixed-length encoded string from the input data.
-    /// @param padded true if the string is padded with trailing <c>0xFF</c> bytes.
+    ///
+    /// @param length the length of the string.
+    /// @param padded true if the string is padded with trailing <c>0xFF</c> bytes, which are removed.
+    /// @return the decoded string, which may be shorter than <c>length</c> if there isn't enough data remaining.
     /// @throws std::invalid_argument if the length is negative.
     std::string GetFixedEncodedString(int length, bool padded = false);
 
     /// Gets the chunked reading mode for the reader.
+    ///
+    /// @return true if the reader is in chunked reading mode.
     bool GetChunkedReadingMode() const;
 
     /// Sets the chunked reading mode for the reader.
     ///
     /// In chunked reading mode, the reader will treat <c>0xFF</c> bytes as the boundaries between chunks of data.
+    ///
+    /// @param chunked_reading_mode true to enable chunked reading mode.
     void SetChunkedReadingMode(bool chunked_reading_mode);
 
     /// Moves the reader position to the start of the next chunk.
+    ///
     /// @throws std::logic_error if not in chunked reading mode.
     void NextChunk();
 
-    /// Gets the number of bytes remaining in the input data (or the current chunk in chunked reading mode).
+    /// Gets the number of bytes remaining in the input data.
+    ///
+    /// @return the number of bytes remaining, or the number remaining in the current chunk in chunked reading mode.
     int Remaining() const;
 
     /// Gets the current position in the input data.
+    ///
+    /// @return the number of bytes read from the start of the input data.
     int Position() const;
 
 private:
