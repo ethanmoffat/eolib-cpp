@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-beta.2] - 2026-09-27
+
 ### Added
 - `EoWriter::ToByteArray() &&` overload, which moves the data out of the writer instead of copying it.
 - `EoReader::View`, which creates a reader over data owned by the caller without copying it.
@@ -43,5 +45,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tests for the packets in `eo-captured-packets`, checking byte-exact round trips and the field values of each packet against the captured properties, and pub/map file tests.
 - Documentation: getting started guide.
 
-[Unreleased]: https://github.com/ethanmoffat/eolib-cpp/compare/v0.1.0-beta.1...HEAD
+[Unreleased]: https://github.com/ethanmoffat/eolib-cpp/compare/v0.1.0-beta.2...HEAD
+[0.1.0-beta.2]: https://github.com/ethanmoffat/eolib-cpp/releases/tag/v0.1.0-beta.2
 [0.1.0-beta.1]: https://github.com/ethanmoffat/eolib-cpp/releases/tag/v0.1.0-beta.1
