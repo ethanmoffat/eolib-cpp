@@ -1,6 +1,7 @@
 #include "eolib/data/eo_writer.hpp"
 
 #include "eolib/data/eo_numeric_limits.hpp"
+#include "eolib/data/eo_reader.hpp"
 #include "test_utils.hpp"
 
 #include <gtest/gtest.h>
@@ -9,6 +10,7 @@
 #include <utility>
 
 using eolib::data::EoNumericLimits;
+using eolib::data::EoReader;
 using eolib::data::EoWriter;
 using eolib::test::Bytes;
 
@@ -180,6 +182,18 @@ TEST(EoWriterTest, AddNumbersExceedingLimit)
     EXPECT_THROW(writer.AddShort(static_cast<int>(EoNumericLimits::ShortMax)), std::invalid_argument);
     EXPECT_THROW(writer.AddThree(static_cast<int>(EoNumericLimits::ThreeMax)), std::invalid_argument);
     EXPECT_THROW(writer.AddInt(static_cast<int>(EoNumericLimits::IntMax)), std::invalid_argument);
+}
+
+TEST(EoWriterTest, AddIntAcceptsWrappedValuesAboveIntMax)
+{
+    EoWriter writer;
+    EXPECT_NO_THROW(writer.AddInt(-2'147'483'647 - 1)); // 2^31
+    EXPECT_NO_THROW(writer.AddInt(-197'815'216));       // 4,097,152,080, the maximum EO int
+    EXPECT_THROW(writer.AddInt(-197'815'215), std::invalid_argument);
+
+    EoReader reader(writer.ToByteArray());
+    EXPECT_EQ(reader.GetInt(), -2'147'483'647 - 1);
+    EXPECT_EQ(reader.GetInt(), -197'815'216);
 }
 
 TEST(EoWriterTest, AddNegativeNumbers)

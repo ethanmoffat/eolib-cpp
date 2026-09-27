@@ -20,6 +20,10 @@ namespace eolib::data
 /// Reads past the end of the data (or the current chunk) do not throw; numeric reads return 0 and string/byte reads
 /// return truncated results.
 ///
+/// Encoded numbers are returned as <c>int</c>. Malformed data can decode to negative or out-of-range values (a
+/// <c>0x00</c> byte decodes as -1), and 4-byte values above <c>INT_MAX</c> wrap to negative numbers, so code reading
+/// untrusted data must validate the values it reads.
+///
 /// A reader either owns its data (the constructors, which copy or take the data) or refers to data owned by the caller
 /// (<c>View</c>, which doesn't copy). Copies and slices of a reader share its data, and are views if it is a view.
 ///
@@ -158,7 +162,7 @@ public:
     /// Reads an encoded 4-byte integer from the input data.
     ///
     /// @return the decoded value. If fewer bytes remain, it is decoded from the bytes that are available (0 if there
-    ///         are none).
+    ///         are none). Values above <c>INT_MAX</c> wrap to negative numbers.
     int GetInt();
 
     /// Reads a string from the input data.

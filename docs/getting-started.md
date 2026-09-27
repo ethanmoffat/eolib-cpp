@@ -29,8 +29,7 @@ Enums have `ToString(value)` and `operator<<` too. Structs also have `operator==
 
 | Protocol type | C++ type |
 |---|---|
-| `byte` | `std::uint8_t` |
-| `char`, `short`, `three`, `int` | `int` |
+| `byte`, `char`, `short`, `three`, `int` | `int` |
 | `bool` | `bool` |
 | `string`, `encoded_string` | `std::string` (raw bytes, no transcoding) |
 | `blob` | `std::vector<std::uint8_t>` |
@@ -39,8 +38,17 @@ Enums have `ToString(value)` and `operator<<` too. Structs also have `operator==
 | optional field | `std::optional<T>` |
 | switch | `std::variant<std::monostate, ...>` of generated case structs |
 
-> **Note:** EO `int` values can be up to 4,097,152,080, which does not fit in a 32-bit `int`. eolib-dotnet has the
-> same limitation. Values above `INT_MAX` wrap when read.
+### Numeric types
+
+All EO numbers are `int`, as in eolib-dotnet and eolib-java. Sizes, positions and lengths are `int` too, since protocol
+lengths can have negative offsets applied. Only raw byte data (`blob`, `GetBytes`, pointer + length overloads) uses
+`std::uint8_t` and `std::size_t`.
+
+- EO `int` values can be up to 4,097,152,080, which does not fit in a 32-bit `int`. Values above `INT_MAX` are read as
+  negative numbers. `AddInt` accepts them back, so they round-trip, but they can't be written as positive values.
+- Malformed data can decode to negative or out-of-range values; for example, a `0x00` byte decodes as -1.
+- Validate numbers read from untrusted data (such as client packets on a server) before using them, for example by
+  rejecting negative amounts.
 
 ## Packets
 

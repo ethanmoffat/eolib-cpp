@@ -278,3 +278,14 @@ TEST(ProtocolRulesTest, DelimitedArrayWithoutLengthReadsUntilEndOfData)
     EXPECT_EQ(packet.npc_index, 9);
     EXPECT_EQ(packet.messages, (std::vector<std::string>{"hello", "world"}));
 }
+
+// types.md: EO int values above INT_MAX are represented as negative ints, which round-trip. Code handling untrusted
+// data must validate numbers, since malformed data can also decode to negative values.
+TEST(ProtocolRulesTest, IntAboveIntMaxRoundTripsAsNegative)
+{
+    const auto bytes = test::Bytes({0xFD, 0xFD, 0xFD, 0xFD, 0x02, 0xFE, 0xFE});
+    const auto packet = DeserializeFromBytes<client::BankAddClientPacket>(bytes);
+    EXPECT_EQ(packet.amount, -197'815'216);
+    EXPECT_EQ(packet.session_id, 1);
+    EXPECT_EQ(SerializeToBytes(packet), bytes);
+}

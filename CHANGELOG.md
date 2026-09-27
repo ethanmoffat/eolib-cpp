@@ -17,9 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generated structs and packets are now `final`.
 - Functions that cannot throw are now `noexcept`, including the `Serializable::ByteSize`, `Packet::Family`, `Packet::Action` and `SequenceStart::Value` virtual functions. Implementations of these interfaces must also be `noexcept`.
 - `eolib-protocol-gen` now rejects protocol files where a non-delimited array without a length is followed by another element in the same chunk, as required by `eo-protocol/docs/elements.md`.
+- Documented the numeric type policy: all EO numbers are `int`, values above `INT_MAX` wrap to negative numbers, and malformed data can decode to negative values.
 - Complete documentation for the public API: every hand-written and generated function now documents its parameters, return value and exceptions, and generated switch data members include the XML comment of the `<switch>` element.
 
 ### Fixed
+- `docs/getting-started.md` incorrectly listed generated `byte` fields as `std::uint8_t`; they are `int`.
 - Using a moved-from `EoReader` no longer dereferences a null pointer; it now behaves like a reader over empty data.
 - `DataEncrypter` documentation: the order of the encryption and decryption steps was incorrect.
 - Removed documentation links to `encryption.md` and `sequence.md`, which do not exist in `eo-protocol`.

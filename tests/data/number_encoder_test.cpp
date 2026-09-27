@@ -61,4 +61,21 @@ INSTANTIATE_TEST_SUITE_P(
         NumberEncoderCase{4'097'152'079U, {0xFC, 0xFD, 0xFD, 0xFD}},
         NumberEncoderCase{4'097'152'080U, {0xFD, 0xFD, 0xFD, 0xFD}}));
 
+// EO numbers are represented as int (like eolib-dotnet and eolib-java). These tests lock in how values that don't fit
+// the non-negative int range are represented.
+
+TEST(NumberEncoderSignednessTest, IntAboveIntMaxWrapsToNegative)
+{
+    const int decoded = NumberEncoder::DecodeNumber(std::vector<std::uint8_t>{0xFD, 0xFD, 0xFD, 0xFD});
+    EXPECT_EQ(decoded, -197'815'216); // 4,097,152,080 - 2^32
+    EXPECT_EQ(NumberEncoder::EncodeNumber(decoded), (std::array<std::uint8_t, 4>{0xFD, 0xFD, 0xFD, 0xFD}));
+}
+
+TEST(NumberEncoderSignednessTest, ZeroBytesDecodeToNegativeValues)
+{
+    // 0x00 is not a valid encoded byte; like the official client and other eolibs, it decodes as -1.
+    EXPECT_EQ(NumberEncoder::DecodeNumber(std::vector<std::uint8_t>{0x00}), -1);
+    EXPECT_EQ(NumberEncoder::DecodeNumber(std::vector<std::uint8_t>{0x01, 0x00}), -253);
+}
+
 } // namespace

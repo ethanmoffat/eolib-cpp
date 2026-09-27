@@ -29,13 +29,17 @@ public:
     ///
     /// @param bytes a pointer to the encoded bytes.
     /// @param length the number of bytes in <c>bytes</c>. Only the first 4 bytes are decoded.
-    /// @return the decoded number. Values above <c>INT_MAX</c> wrap to negative numbers.
+    /// @return the decoded number. Values above <c>INT_MAX</c> wrap to negative numbers, and malformed <c>0x00</c>
+    /// bytes
+    ///         decode as -1.
     static int DecodeNumber(const std::uint8_t* bytes, std::size_t length) noexcept;
 
     /// Decodes a number from a sequence of up to 4 bytes.
     ///
     /// @param bytes the encoded bytes. Only the first 4 bytes are decoded.
-    /// @return the decoded number. Values above <c>INT_MAX</c> wrap to negative numbers.
+    /// @return the decoded number. Values above <c>INT_MAX</c> wrap to negative numbers, and malformed <c>0x00</c>
+    /// bytes
+    ///         decode as -1.
     static int DecodeNumber(const std::vector<std::uint8_t>& bytes) noexcept;
 };
 
