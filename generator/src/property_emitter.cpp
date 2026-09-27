@@ -33,8 +33,9 @@ std::string PacketClassName(const ProtocolFile& file, const ProtocolPacket& pack
     return packet.family + packet.action + (side == "client" ? "ClientPacket" : "ServerPacket");
 }
 
-/// Generates the Apply functions that copy JSON properties into generated objects. Each object has a function with the
-/// signature `void Apply(const Json& properties, T& target)`, where properties is the array of property objects.
+/// Generates the FromProperties factory functions that create generated objects from JSON properties. Each object has
+/// a specialization of `template <typename T> T FromProperties(const Json& properties)`, where properties is the array
+/// of property objects.
 class PropertyGenerator
 {
 public:
@@ -74,6 +75,11 @@ public:
         output.Line("{");
         output.Line();
         output.Line("using namespace eolib::test::detail;");
+        output.Line();
+        output.Line("/// Creates an object of type T with its fields set from the properties array. Each type has an");
+        output.Line("/// explicit specialization below.");
+        output.Line("template <typename T>");
+        output.Line("T FromProperties(const Json& properties);");
         output.Line();
         output.Append(declarations_);
         output.Line();
@@ -137,28 +143,23 @@ private:
         throw GeneratorError("Unhandled type for property value: " + type.name);
     }
 
-    /// Emits a statement that sets the target from a property.
-    static void AssignStatement(CodeWriter& writer, const Type& type, const std::string& target,
-                                const std::string& value_expression, const std::string& property)
+    /// Returns an expression for the value of a property, including struct properties.
+    std::string PropertyExpression(const Type& type, const std::string& property) const
     {
         if (type.kind == TypeKind::Struct)
         {
-            writer.Line("Apply(Children(" + property + "), " + target + ");");
+            return "FromProperties<" + CppTypeName(type) + ">(Children(" + property + "))";
         }
-        else
-        {
-            writer.Line(target + " = " + value_expression + ";");
-        }
+        return ValueExpression(type, property);
     }
 
     struct ObjectBody
     {
         CodeWriter branches;
         std::vector<std::string> ignored_names;
-        bool uses_target = false;
     };
 
-    /// Generates the Apply function for a struct type, if it hasn't been generated yet.
+    /// Generates the FromProperties specialization for a struct type, if it hasn't been generated yet.
     void RequireStruct(const Type& type)
     {
         if (type.kind != TypeKind::Struct || !generated_structs_.insert(type.struct_definition).second)
@@ -174,19 +175,21 @@ private:
         ObjectBody body;
         GenerateInstructions(file, qualified_name, dump_prefix, instructions, body);
 
-        declarations_.Line("void Apply(const Json& properties, " + qualified_name + "& target);");
+        const std::string signature =
+            qualified_name + " FromProperties<" + qualified_name + ">(const Json& properties)";
+        declarations_.Line("template <>");
+        declarations_.Line(signature + ";");
 
-        definitions_.Open("void Apply(const Json& properties, " + qualified_name + "& target)");
-        if (!body.uses_target)
-        {
-            definitions_.Line("(void)target;");
-        }
+        definitions_.Line("template <>");
+        definitions_.Open(signature);
+        definitions_.Line(qualified_name + " result;");
         if (body.branches.Empty() && body.ignored_names.empty())
         {
             // A loop would warn about unreachable code (MSVC C4702), since UnknownProperty doesn't return.
             definitions_.Open("if (!properties.empty())");
             definitions_.Line("UnknownProperty(properties.front(), \"" + qualified_name + "\");");
             definitions_.Close();
+            definitions_.Line("return result;");
             definitions_.Close();
             definitions_.Line();
             return;
@@ -224,6 +227,7 @@ private:
             definitions_.Close();
         }
         definitions_.Close();
+        definitions_.Line("return result;");
         definitions_.Close();
         definitions_.Line();
     }
@@ -262,7 +266,6 @@ private:
     {
         const std::string keyword = body.branches.Empty() ? "if" : "else if";
         body.branches.Open(keyword + " (name == \"" + name + "\")");
-        body.uses_target = true;
     }
 
     void GenerateField(const Instruction& instruction, ObjectBody& body)
@@ -279,22 +282,18 @@ private:
 
         const Type& type = types_.Get(instruction.type, instruction.length);
         RequireStruct(type);
-        const std::string target = "target." + MemberIdentifier(*instruction.name);
-        const std::string value = type.kind == TypeKind::Struct ? "" : ValueExpression(type, "property");
+        const std::string assignment =
+            "result." + MemberIdentifier(*instruction.name) + " = " + PropertyExpression(type, "property") + ";";
         BeginBranch(body, *instruction.name);
         if (instruction.optional)
         {
             body.branches.Open("if (HasValue(property))");
-            AssignStatement(body.branches, type, type.kind == TypeKind::Struct ? target + ".emplace()" : target, value,
-                            "property");
-            body.branches.Close();
-            body.branches.Open("else");
-            body.branches.Line(target + ".reset();");
+            body.branches.Line(assignment);
             body.branches.Close();
         }
         else
         {
-            AssignStatement(body.branches, type, target, value, "property");
+            body.branches.Line(assignment);
         }
         body.branches.Close();
     }
@@ -303,33 +302,21 @@ private:
     {
         const Type& type = types_.Get(instruction.type);
         RequireStruct(type);
-        const std::string member = "target." + MemberIdentifier(*instruction.name);
+        const std::string member = "result." + MemberIdentifier(*instruction.name);
         BeginBranch(body, *instruction.name);
 
         std::string container = member;
         if (instruction.optional)
         {
             body.branches.Open("if (!HasValue(property))");
-            body.branches.Line(member + ".reset();");
             body.branches.Line("continue;");
             body.branches.Close();
             body.branches.Line("auto& values = " + member + ".emplace();");
             container = "values";
         }
-        else
-        {
-            body.branches.Line(member + ".clear();");
-        }
 
         body.branches.Open("for (const auto& element : Children(property))");
-        if (type.kind == TypeKind::Struct)
-        {
-            body.branches.Line("Apply(Children(element), " + container + ".emplace_back());");
-        }
-        else
-        {
-            body.branches.Line(container + ".push_back(" + ValueExpression(type, "element") + ");");
-        }
+        body.branches.Line(container + ".push_back(" + PropertyExpression(type, "element") + ");");
         body.branches.Close();
         body.branches.Close();
     }
@@ -339,9 +326,9 @@ private:
     {
         const std::string data_type_name = SnakeCaseToPascalCase(instruction.switch_field) + "Data";
         const std::string data_name = instruction.switch_field + "_data";
-        const std::string member = "target." + MemberIdentifier(data_name);
+        const std::string member = "result." + MemberIdentifier(data_name);
 
-        // Generate the case objects first, so their Apply functions are declared before use.
+        // Generate the case objects first, so their FromProperties specializations are declared before use.
         std::vector<std::pair<std::string, std::string>> data_cases;
         std::vector<std::string> empty_cases;
         for (const auto& protocol_case : instruction.cases)
@@ -364,7 +351,7 @@ private:
         for (const auto& [dump_name, case_qualified_name] : data_cases)
         {
             body.branches.Open(keyword + " (type == \"" + dump_name + "\")");
-            body.branches.Line("Apply(Children(property), " + member + ".emplace<" + case_qualified_name + ">());");
+            body.branches.Line(member + " = FromProperties<" + case_qualified_name + ">(Children(property));");
             body.branches.Close();
             keyword = "else if";
         }
@@ -444,10 +431,9 @@ private:
         generate_switch(
             [&](const ProtocolPacket& packet)
             {
-                output.Line("auto packet = std::make_unique<" + file.Namespace() +
-                            "::" + PacketClassName(file, packet) + ">();");
-                output.Line("Apply(properties, *packet);");
-                output.Line("return packet;");
+                const std::string packet_type = file.Namespace() + "::" + PacketClassName(file, packet);
+                output.Line("return std::make_unique<" + packet_type + ">(FromProperties<" + packet_type +
+                            ">(properties));");
             },
             "return nullptr;");
         output.Close();
