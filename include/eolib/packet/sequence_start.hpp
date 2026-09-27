@@ -35,8 +35,6 @@ EOLIB_API std::mt19937& DefaultRandomEngine();
 } // namespace detail
 
 /// A value sent by the server to update the client's sequence start, also known as the "sequence byte".
-///
-/// See: https://github.com/Cirras/eo-protocol/blob/master/docs/sequence.md
 class EOLIB_API SequenceStart
 {
 public:

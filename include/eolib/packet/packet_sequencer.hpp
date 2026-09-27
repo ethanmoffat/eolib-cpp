@@ -7,8 +7,6 @@ namespace eolib::packet
 {
 
 /// A class for generating packet sequences.
-///
-/// See: https://github.com/Cirras/eo-protocol/blob/master/docs/sequence.md
 class EOLIB_API PacketSequencer
 {
 public:

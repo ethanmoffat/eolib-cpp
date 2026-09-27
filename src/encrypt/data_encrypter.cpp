@@ -1,109 +1,80 @@
 #include "eolib/encrypt/data_encrypter.hpp"
 
+#include <algorithm>
 #include <stdexcept>
-#include <utility>
 
 namespace eolib::encrypt
 {
 
-std::vector<std::uint8_t> DataEncrypter::Interleave(const std::vector<std::uint8_t>& data)
+void DataEncrypter::Interleave(std::uint8_t* data, std::size_t length)
 {
-    const std::ptrdiff_t length = static_cast<std::ptrdiff_t>(data.size());
-    std::vector<std::uint8_t> result(data.size());
+    const std::vector<std::uint8_t> source(data, data + length);
 
-    std::ptrdiff_t i = 0;
-    std::ptrdiff_t next = 0;
-    for (; i < length; i += 2)
+    std::size_t next = 0;
+    for (std::size_t i = 0; i < length; i += 2)
     {
-        result[static_cast<std::size_t>(i)] = data[static_cast<std::size_t>(next++)];
+        data[i] = source[next++];
     }
 
-    --i;
-    if (length % 2 != 0)
+    for (std::size_t i = length - length % 2; i > 0; i -= 2)
     {
-        i -= 2;
+        data[i - 1] = source[next++];
     }
-
-    for (; i >= 0; i -= 2)
-    {
-        result[static_cast<std::size_t>(i)] = data[static_cast<std::size_t>(next++)];
-    }
-
-    return result;
 }
 
-std::vector<std::uint8_t> DataEncrypter::Deinterleave(const std::vector<std::uint8_t>& data)
+void DataEncrypter::Deinterleave(std::uint8_t* data, std::size_t length)
 {
-    const std::ptrdiff_t length = static_cast<std::ptrdiff_t>(data.size());
-    std::vector<std::uint8_t> result(data.size());
+    const std::vector<std::uint8_t> source(data, data + length);
 
-    std::ptrdiff_t i = 0;
-    std::ptrdiff_t next = 0;
-    for (; i < length; i += 2)
+    std::size_t next = 0;
+    for (std::size_t i = 0; i < length; i += 2)
     {
-        result[static_cast<std::size_t>(next++)] = data[static_cast<std::size_t>(i)];
+        data[next++] = source[i];
     }
 
-    --i;
-    if (length % 2 != 0)
+    for (std::size_t i = length - length % 2; i > 0; i -= 2)
     {
-        i -= 2;
+        data[next++] = source[i - 1];
     }
-
-    for (; i >= 0; i -= 2)
-    {
-        result[static_cast<std::size_t>(next++)] = data[static_cast<std::size_t>(i)];
-    }
-
-    return result;
 }
 
-std::vector<std::uint8_t> DataEncrypter::FlipMsb(const std::vector<std::uint8_t>& data)
+void DataEncrypter::FlipMsb(std::uint8_t* data, std::size_t length)
 {
-    std::vector<std::uint8_t> result(data);
-    for (auto& b : result)
+    for (std::size_t i = 0; i < length; ++i)
     {
-        if (b != 0x00 && b != 0x80)
+        if (data[i] != 0x00 && data[i] != 0x80)
         {
-            b = static_cast<std::uint8_t>(b ^ 0x80);
+            data[i] = static_cast<std::uint8_t>(data[i] ^ 0x80);
         }
     }
-    return result;
 }
 
-std::vector<std::uint8_t> DataEncrypter::SwapMultiples(const std::vector<std::uint8_t>& data, int multiple)
+void DataEncrypter::SwapMultiples(std::uint8_t* data, std::size_t length, int multiple)
 {
     if (multiple < 0)
     {
         throw std::invalid_argument("multiple must not be less than zero");
     }
 
-    std::vector<std::uint8_t> result(data);
     if (multiple == 0)
     {
-        return result;
+        return;
     }
 
+    // Swapping a sequence of multiples only reorders bytes before the current index, so the remaining bytes can still
+    // be checked in place.
     std::size_t sequence_length = 0;
-    for (std::size_t i = 0; i <= data.size(); ++i)
+    for (std::size_t i = 0; i <= length; ++i)
     {
-        if (i != data.size() && data[i] % multiple == 0)
+        if (i != length && data[i] % multiple == 0)
         {
             ++sequence_length;
             continue;
         }
 
-        if (sequence_length > 1)
-        {
-            for (std::size_t j = 0; j < sequence_length / 2; ++j)
-            {
-                std::swap(result[i - sequence_length + j], result[i - j - 1]);
-            }
-        }
+        std::reverse(data + (i - sequence_length), data + i);
         sequence_length = 0;
     }
-
-    return result;
 }
 
 } // namespace eolib::encrypt

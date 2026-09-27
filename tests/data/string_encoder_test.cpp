@@ -5,6 +5,7 @@
 #include <ostream>
 
 #include <string>
+#include <vector>
 
 using eolib::data::StringEncoder;
 
@@ -28,20 +29,48 @@ class StringEncoderTest : public ::testing::TestWithParam<StringEncoderCase>
 
 TEST_P(StringEncoderTest, EncodeString)
 {
-    EXPECT_EQ(StringEncoder::EncodeString(GetParam().decoded), GetParam().encoded);
+    auto str = GetParam().decoded;
+    StringEncoder::EncodeString(str);
+    EXPECT_EQ(str, GetParam().encoded);
 }
 
 TEST_P(StringEncoderTest, DecodeString)
 {
-    EXPECT_EQ(StringEncoder::DecodeString(GetParam().encoded), GetParam().decoded);
+    auto str = GetParam().encoded;
+    StringEncoder::DecodeString(str);
+    EXPECT_EQ(str, GetParam().decoded);
 }
 
 TEST_P(StringEncoderTest, EncodeByteVector)
 {
     const auto& param = GetParam();
-    const std::vector<std::uint8_t> input(param.decoded.begin(), param.decoded.end());
-    const std::vector<std::uint8_t> expected(param.encoded.begin(), param.encoded.end());
-    EXPECT_EQ(StringEncoder::EncodeString(input), expected);
+    std::vector<std::uint8_t> bytes(param.decoded.begin(), param.decoded.end());
+    StringEncoder::EncodeString(bytes);
+    EXPECT_EQ(bytes, std::vector<std::uint8_t>(param.encoded.begin(), param.encoded.end()));
+}
+
+TEST_P(StringEncoderTest, DecodeByteVector)
+{
+    const auto& param = GetParam();
+    std::vector<std::uint8_t> bytes(param.encoded.begin(), param.encoded.end());
+    StringEncoder::DecodeString(bytes);
+    EXPECT_EQ(bytes, std::vector<std::uint8_t>(param.decoded.begin(), param.decoded.end()));
+}
+
+TEST_P(StringEncoderTest, EncodePointer)
+{
+    const auto& param = GetParam();
+    std::vector<std::uint8_t> bytes(param.decoded.begin(), param.decoded.end());
+    StringEncoder::EncodeString(bytes.data(), bytes.size());
+    EXPECT_EQ(bytes, std::vector<std::uint8_t>(param.encoded.begin(), param.encoded.end()));
+}
+
+TEST_P(StringEncoderTest, DecodePointer)
+{
+    const auto& param = GetParam();
+    std::vector<std::uint8_t> bytes(param.encoded.begin(), param.encoded.end());
+    StringEncoder::DecodeString(bytes.data(), bytes.size());
+    EXPECT_EQ(bytes, std::vector<std::uint8_t>(param.decoded.begin(), param.decoded.end()));
 }
 
 // Strings are Windows-1252 encoded byte sequences.

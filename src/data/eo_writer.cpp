@@ -113,7 +113,7 @@ void EoWriter::AddFixedString(std::string_view str, int length, bool padded)
 void EoWriter::AddEncodedString(std::string_view str)
 {
     auto bytes = PrepareString(str);
-    StringEncoder::EncodeInPlace(bytes.data(), bytes.size());
+    StringEncoder::EncodeString(bytes);
     AddBytes(bytes);
 }
 
@@ -125,7 +125,7 @@ void EoWriter::AddFixedEncodedString(std::string_view str, int length, bool padd
     {
         AddPadding(bytes, length);
     }
-    StringEncoder::EncodeInPlace(bytes.data(), bytes.size());
+    StringEncoder::EncodeString(bytes);
     AddBytes(bytes);
 }
 

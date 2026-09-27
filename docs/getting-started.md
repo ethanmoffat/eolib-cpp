@@ -108,13 +108,20 @@ for (const auto& item : eif.items)
 
 ## Encryption and sequencing
 
-`DataEncrypter` works on the packet bytes after the 2-byte length prefix:
+`DataEncrypter` transforms the packet bytes after the 2-byte length prefix in place. Each function accepts a `std::vector<std::uint8_t>&`, a `std::string&`, or a pointer and length:
 
 ```cpp
 using encrypt::DataEncrypter;
 
-std::vector<std::uint8_t> encrypted = DataEncrypter::SwapMultiples(DataEncrypter::FlipMsb(DataEncrypter::Interleave(bytes)), 6);
-std::vector<std::uint8_t> decrypted = DataEncrypter::Deinterleave(DataEncrypter::FlipMsb(DataEncrypter::SwapMultiples(encrypted, 6)));
+// Encrypt
+DataEncrypter::SwapMultiples(bytes, 6);
+DataEncrypter::Interleave(bytes);
+DataEncrypter::FlipMsb(bytes);
+
+// Decrypt
+DataEncrypter::FlipMsb(bytes);
+DataEncrypter::Deinterleave(bytes);
+DataEncrypter::SwapMultiples(bytes, 6);
 ```
 
 A server generates a sequence start for the init handshake and tracks the sequence for each connection:

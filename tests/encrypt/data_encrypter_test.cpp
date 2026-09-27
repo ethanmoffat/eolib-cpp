@@ -47,6 +47,23 @@ std::string FromBytes(const std::vector<std::uint8_t>& bytes)
     return std::string(bytes.begin(), bytes.end());
 }
 
+/// Checks that the transform produces the expected output through the vector, string and pointer overloads.
+template <typename Transform>
+void ExpectTransform(const std::string& input, const std::string& expected, Transform transform)
+{
+    auto bytes = ToBytes(input);
+    transform(bytes);
+    EXPECT_EQ(FromBytes(bytes), expected) << "vector overload";
+
+    auto str = input;
+    transform(str);
+    EXPECT_EQ(str, expected) << "string overload";
+
+    auto buffer = ToBytes(input);
+    transform(buffer.data(), buffer.size());
+    EXPECT_EQ(FromBytes(buffer), expected) << "pointer overload";
+}
+
 // Strings are Windows-1252 encoded byte sequences.
 // clang-format off
 const EncrypterCase INTERLEAVE_CASES[] = {
@@ -103,7 +120,7 @@ class InterleaveTest : public ::testing::TestWithParam<EncrypterCase>
 
 TEST_P(InterleaveTest, InterleavesBytes)
 {
-    EXPECT_EQ(FromBytes(DataEncrypter::Interleave(ToBytes(GetParam().input))), GetParam().expected);
+    ExpectTransform(GetParam().input, GetParam().expected, [](auto&&... args) { DataEncrypter::Interleave(args...); });
 }
 
 INSTANTIATE_TEST_SUITE_P(DataEncrypterTest, InterleaveTest, ::testing::ValuesIn(INTERLEAVE_CASES));
@@ -114,13 +131,17 @@ class DeinterleaveTest : public ::testing::TestWithParam<EncrypterCase>
 
 TEST_P(DeinterleaveTest, DeinterleavesBytes)
 {
-    EXPECT_EQ(FromBytes(DataEncrypter::Deinterleave(ToBytes(GetParam().input))), GetParam().expected);
+    ExpectTransform(GetParam().input, GetParam().expected,
+                    [](auto&&... args) { DataEncrypter::Deinterleave(args...); });
 }
 
 TEST_P(DeinterleaveTest, ReversesInterleave)
 {
-    const auto bytes = ToBytes(GetParam().input);
-    EXPECT_EQ(DataEncrypter::Deinterleave(DataEncrypter::Interleave(bytes)), bytes);
+    const auto original = ToBytes(GetParam().input);
+    auto bytes = original;
+    DataEncrypter::Interleave(bytes);
+    DataEncrypter::Deinterleave(bytes);
+    EXPECT_EQ(bytes, original);
 }
 
 INSTANTIATE_TEST_SUITE_P(DataEncrypterTest, DeinterleaveTest, ::testing::ValuesIn(DEINTERLEAVE_CASES));
@@ -131,7 +152,7 @@ class FlipMsbTest : public ::testing::TestWithParam<EncrypterCase>
 
 TEST_P(FlipMsbTest, FlipsMostSignificantBit)
 {
-    EXPECT_EQ(FromBytes(DataEncrypter::FlipMsb(ToBytes(GetParam().input))), GetParam().expected);
+    ExpectTransform(GetParam().input, GetParam().expected, [](auto&&... args) { DataEncrypter::FlipMsb(args...); });
 }
 
 INSTANTIATE_TEST_SUITE_P(DataEncrypterTest, FlipMsbTest, ::testing::ValuesIn(FLIP_MSB_CASES));
@@ -143,23 +164,45 @@ class SwapMultiplesTest : public ::testing::TestWithParam<SwapMultiplesCase>
 TEST_P(SwapMultiplesTest, SwapsBytesThatAreMultiplesOfValue)
 {
     const auto& param = GetParam();
-    EXPECT_EQ(FromBytes(DataEncrypter::SwapMultiples(ToBytes(param.input), param.multiple)), param.expected);
+    ExpectTransform(param.input, param.expected,
+                    [&](auto&&... args) { DataEncrypter::SwapMultiples(args..., param.multiple); });
 }
 
 INSTANTIATE_TEST_SUITE_P(DataEncrypterTest, SwapMultiplesTest, ::testing::ValuesIn(SWAP_MULTIPLES_CASES));
 
-TEST(DataEncrypterTest, SwapMultiplesNegativeMultipleThrows)
+TEST(DataEncrypterTest, SwapMultiplesNegativeMultipleThrowsWithoutModifyingData)
 {
-    EXPECT_THROW(DataEncrypter::SwapMultiples(ToBytes("foo"), -1), std::invalid_argument);
+    auto bytes = ToBytes("foo");
+    EXPECT_THROW(DataEncrypter::SwapMultiples(bytes, -1), std::invalid_argument);
+    EXPECT_EQ(FromBytes(bytes), "foo");
+}
+
+TEST(DataEncrypterTest, PointerOverloadOnlyTransformsRange)
+{
+    auto bytes = ToBytes("\x01\x02Hello");
+    DataEncrypter::Interleave(bytes.data() + 2, bytes.size() - 2);
+    DataEncrypter::FlipMsb(bytes.data() + 2, bytes.size() - 2);
+    EXPECT_EQ(bytes[0], 0x01);
+    EXPECT_EQ(bytes[1], 0x02);
+
+    auto expected = ToBytes("Hello");
+    DataEncrypter::Interleave(expected);
+    DataEncrypter::FlipMsb(expected);
+    EXPECT_EQ(std::vector<std::uint8_t>(bytes.begin() + 2, bytes.end()), expected);
 }
 
 TEST(DataEncrypterTest, EmptyInput)
 {
-    const std::vector<std::uint8_t> empty;
-    EXPECT_TRUE(DataEncrypter::Interleave(empty).empty());
-    EXPECT_TRUE(DataEncrypter::Deinterleave(empty).empty());
-    EXPECT_TRUE(DataEncrypter::FlipMsb(empty).empty());
-    EXPECT_TRUE(DataEncrypter::SwapMultiples(empty, 3).empty());
+    std::vector<std::uint8_t> empty;
+    DataEncrypter::Interleave(empty);
+    DataEncrypter::Deinterleave(empty);
+    DataEncrypter::FlipMsb(empty);
+    DataEncrypter::SwapMultiples(empty, 3);
+    EXPECT_TRUE(empty.empty());
+    DataEncrypter::Interleave(nullptr, 0);
+    DataEncrypter::Deinterleave(nullptr, 0);
+    DataEncrypter::FlipMsb(nullptr, 0);
+    DataEncrypter::SwapMultiples(nullptr, 0, 3);
 }
 
 } // namespace

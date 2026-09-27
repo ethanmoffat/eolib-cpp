@@ -133,7 +133,7 @@ std::string EoReader::GetFixedString(int length, bool padded)
 std::string EoReader::GetEncodedString()
 {
     auto bytes = ReadBytes(Remaining());
-    StringEncoder::DecodeInPlace(bytes.data(), bytes.size());
+    StringEncoder::DecodeString(bytes);
     return ToString(bytes);
 }
 
@@ -141,7 +141,7 @@ std::string EoReader::GetFixedEncodedString(int length, bool padded)
 {
     CheckLength(length);
     auto bytes = ReadBytes(length);
-    StringEncoder::DecodeInPlace(bytes.data(), bytes.size());
+    StringEncoder::DecodeString(bytes);
     if (padded)
     {
         RemovePadding(bytes);

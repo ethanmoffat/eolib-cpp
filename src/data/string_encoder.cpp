@@ -37,40 +37,16 @@ void InvertCharacters(std::uint8_t* bytes, std::size_t length)
 
 } // namespace
 
-void StringEncoder::EncodeInPlace(std::uint8_t* bytes, std::size_t length)
+void StringEncoder::EncodeString(std::uint8_t* bytes, std::size_t length)
 {
     InvertCharacters(bytes, length);
     std::reverse(bytes, bytes + length);
 }
 
-void StringEncoder::DecodeInPlace(std::uint8_t* bytes, std::size_t length)
+void StringEncoder::DecodeString(std::uint8_t* bytes, std::size_t length)
 {
     std::reverse(bytes, bytes + length);
     InvertCharacters(bytes, length);
-}
-
-std::vector<std::uint8_t> StringEncoder::EncodeString(std::vector<std::uint8_t> bytes)
-{
-    EncodeInPlace(bytes.data(), bytes.size());
-    return bytes;
-}
-
-std::string StringEncoder::EncodeString(std::string str)
-{
-    EncodeInPlace(reinterpret_cast<std::uint8_t*>(str.data()), str.size());
-    return str;
-}
-
-std::vector<std::uint8_t> StringEncoder::DecodeString(std::vector<std::uint8_t> bytes)
-{
-    DecodeInPlace(bytes.data(), bytes.size());
-    return bytes;
-}
-
-std::string StringEncoder::DecodeString(std::string str)
-{
-    DecodeInPlace(reinterpret_cast<std::uint8_t*>(str.data()), str.size());
-    return str;
 }
 
 } // namespace eolib::data
