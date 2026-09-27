@@ -20,7 +20,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  CLANG_FORMAT_VERSION: "18.1.8"
+  # Static clang-format/clang-tidy binaries, matching scripts/install-deps.sh and scripts/install-deps.ps1.
+  STYLE_TOOLS_VERSION: "18"
+  STYLE_TOOLS_URL: https://github.com/cpp-linter/clang-tools-static-binaries/releases/download/2026.09.01-5fb8802d
 
 jobs:
   format:
@@ -28,13 +30,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.x"
       - name: Install clang-format
-        run: pip install clang-format==${{ env.CLANG_FORMAT_VERSION }}
+        run: |
+          mkdir -p .tools/bin
+          curl -fsSL -o .tools/bin/clang-format "${STYLE_TOOLS_URL}/clang-format-${STYLE_TOOLS_VERSION}_linux-amd64"
+          chmod +x .tools/bin/clang-format
       - name: Check formatting
-        run: git ls-files -z '*.cpp' '*.hpp' | xargs -0 clang-format --dry-run --Werror --style=file
+        run: git ls-files -z '*.cpp' '*.hpp' | xargs -0 .tools/bin/clang-format --dry-run --Werror --style=file
 
   build-test:
     name: ${{ matrix.name }}
@@ -129,7 +131,11 @@ jobs:
         with:
           submodules: recursive
       - name: Install clang-tidy
-        run: sudo apt-get update && sudo apt-get install -y clang-tidy
+        run: |
+          mkdir -p .tools/bin
+          curl -fsSL -o ".tools/bin/clang-tidy-${STYLE_TOOLS_VERSION}" \
+            "${STYLE_TOOLS_URL}/clang-tidy-${STYLE_TOOLS_VERSION}_linux-amd64"
+          chmod +x ".tools/bin/clang-tidy-${STYLE_TOOLS_VERSION}"
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++
       - name: Run clang-tidy

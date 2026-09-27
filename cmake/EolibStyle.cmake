@@ -6,8 +6,8 @@
 # Generated protocol code is emitted in the project style by the generator, but is not required to be
 # clang-format clean (long lines are not wrapped).
 
-# scripts/install-deps installs the versions used by CI into .tools, which takes precedence.
-set(eolib_style_tool_hints "${PROJECT_SOURCE_DIR}/.tools/bin" "${PROJECT_SOURCE_DIR}/.tools/Scripts")
+# scripts/install-deps installs the versions used by CI into .tools/bin, which takes precedence.
+set(eolib_style_tool_hints "${PROJECT_SOURCE_DIR}/.tools/bin")
 find_program(
     EOLIB_CLANG_FORMAT_EXECUTABLE
     NAMES clang-format-18 clang-format
@@ -51,11 +51,33 @@ if(EOLIB_CLANG_FORMAT_EXECUTABLE)
 endif()
 
 if(EOLIB_CLANG_TIDY_EXECUTABLE)
+    # The static clang-tidy binaries installed by scripts/install-deps don't include the clang builtin headers (e.g.
+    # stddef.h), so fall back to the compiler's. -idirafter keeps clang-tidy's own headers first when it has them.
+    set(eolib_tidy_builtin_args "")
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        execute_process(
+            COMMAND "${CMAKE_CXX_COMPILER}" -print-resource-dir
+            OUTPUT_VARIABLE eolib_compiler_builtin_dir
+            OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+        if(eolib_compiler_builtin_dir)
+            set(eolib_compiler_builtin_dir "${eolib_compiler_builtin_dir}/include")
+        endif()
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        execute_process(
+            COMMAND "${CMAKE_CXX_COMPILER}" -print-file-name=include
+            OUTPUT_VARIABLE eolib_compiler_builtin_dir
+            OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+    endif()
+    if(eolib_compiler_builtin_dir AND IS_DIRECTORY "${eolib_compiler_builtin_dir}")
+        set(eolib_tidy_builtin_args "--extra-arg=-idirafter${eolib_compiler_builtin_dir}")
+    endif()
+
     file(GLOB_RECURSE eolib_tidy_sources CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/src/*.cpp"
          "${PROJECT_SOURCE_DIR}/generator/src/*.cpp")
     add_custom_target(
         tidy
-        COMMAND "${EOLIB_CLANG_TIDY_EXECUTABLE}" -p "${PROJECT_BINARY_DIR}" --quiet ${EOLIB_CLANG_TIDY_EXTRA_ARGS}
+        COMMAND "${EOLIB_CLANG_TIDY_EXECUTABLE}" -p "${PROJECT_BINARY_DIR}" --quiet ${eolib_tidy_builtin_args}
+                ${EOLIB_CLANG_TIDY_EXTRA_ARGS}
                 ${eolib_tidy_sources}
         WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
         COMMENT "Running clang-tidy"

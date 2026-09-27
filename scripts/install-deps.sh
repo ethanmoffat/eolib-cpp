@@ -7,8 +7,9 @@
 # Homebrew.
 #
 # Optional:
-#   - clang-format and clang-tidy (the versions used by CI), installed with pip into a virtual environment in
-#     <repo>/.tools. CMake finds them there for the format, format-check and tidy targets.
+#   - clang-format and clang-tidy (the versions used by CI), downloaded as static binaries from
+#     https://github.com/cpp-linter/clang-tools-static-binaries into <repo>/.tools/bin. CMake finds them there for the
+#     format, format-check and tidy targets.
 #   - System packages for pugixml, GoogleTest and nlohmann/json. Without them, CMake downloads these with
 #     FetchContent at configure time.
 
@@ -17,7 +18,8 @@ REPO_ROOT="$(dirname "${SCRIPT_ROOT}")"
 
 MIN_CMAKE_VERSION="3.21.0"
 CMAKE_VERSION="3.31.6"
-STYLE_TOOLS_VERSION="18.1.8"
+STYLE_TOOLS_VERSION="18"
+STYLE_TOOLS_RELEASE="2026.09.01-5fb8802d"
 
 SKIPCMAKE=false
 SKIPSTYLETOOLS=false
@@ -117,17 +119,15 @@ function detect_platform() {
 }
 
 function install_packages() {
-    # Packages per platform: required, style tools (Python for pip), and the optional system libraries.
-    local required style libs
+    # Packages per platform: required, and the optional system libraries.
+    local required libs
     case "${PLATFORM_NAME}" in
         debian)
             required="g++ make git ca-certificates curl"
-            style="python3 python3-venv"
             libs="libpugixml-dev libgtest-dev nlohmann-json3-dev"
             ;;
         rhel)
             required="gcc-c++ make git ca-certificates curl"
-            style="python3"
             libs="pugixml-devel gtest-devel json-devel"
             ;;
         alpine)
@@ -136,7 +136,6 @@ function install_packages() {
             if [[ "${SKIPCMAKE}" == "false" ]]; then
                 required="${required} cmake"
             fi
-            style="python3"
             libs="pugixml-dev gtest-dev nlohmann-json"
             ;;
         macos)
@@ -145,15 +144,11 @@ function install_packages() {
             if [[ "${SKIPCMAKE}" == "false" ]]; then
                 required="cmake"
             fi
-            style="python3"
             libs="pugixml googletest nlohmann-json"
             ;;
     esac
 
     local packages="${required}"
-    if [[ "${SKIPSTYLETOOLS}" == "false" ]]; then
-        packages="${packages} ${style}"
-    fi
     if [[ "${SYSTEMLIBS}" == "true" ]]; then
         packages="${packages} ${libs}"
     fi
@@ -240,12 +235,29 @@ function install_style_tools() {
         return
     fi
 
-    local tools_dir="${REPO_ROOT}/.tools"
+    local os arch
+    case "${PLATFORM_NAME}" in
+        macos)   os="macos" ;;
+        *)       os="linux" ;;
+    esac
+    case "$(uname -m)" in
+        x86_64|amd64)    arch="amd64" ;;
+        aarch64|arm64)   arch="arm64" ;;
+        *)
+            >&2 echo "No clang-format/clang-tidy binaries are available for $(uname -m). Skipping the style tools."
+            return
+            ;;
+    esac
+
+    local tools_dir="${REPO_ROOT}/.tools/bin"
     echo "Installing clang-format and clang-tidy ${STYLE_TOOLS_VERSION} to ${tools_dir}..."
-    run_as_user python3 -m venv "${tools_dir}"
-    run_as_user "${tools_dir}/bin/python" -m pip install --quiet --upgrade pip
-    run_as_user "${tools_dir}/bin/python" -m pip install --quiet \
-        "clang-format==${STYLE_TOOLS_VERSION}" "clang-tidy==${STYLE_TOOLS_VERSION}"
+    run_as_user mkdir -p "${tools_dir}"
+    local tool
+    for tool in clang-format clang-tidy; do
+        run_as_user curl -fsSL -o "${tools_dir}/${tool}-${STYLE_TOOLS_VERSION}" \
+            "https://github.com/cpp-linter/clang-tools-static-binaries/releases/download/${STYLE_TOOLS_RELEASE}/${tool}-${STYLE_TOOLS_VERSION}_${os}-${arch}"
+        run_as_user chmod +x "${tools_dir}/${tool}-${STYLE_TOOLS_VERSION}"
+    done
 }
 
 parse_options "$@"

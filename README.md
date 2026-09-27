@@ -110,8 +110,10 @@ cmake --install build --prefix install
 ### Installing dependencies
 
 `scripts/install-deps.sh` (Ubuntu/Debian, RHEL/Fedora, Alpine and macOS) and `scripts/install-deps.ps1` (Windows,
-via Chocolatey) install a compiler toolchain, git and CMake 3.21 or later. They also install the clang-format and
-clang-tidy versions used by CI into `.tools/`, where the `format`, `format-check` and `tidy` targets find them.
+via Chocolatey) install a compiler toolchain, git and CMake 3.21 or later. They also download the clang-format and
+clang-tidy 18 static binaries used by CI, from
+[cpp-linter/clang-tools-static-binaries](https://github.com/cpp-linter/clang-tools-static-binaries), into
+`.tools/bin`, where the `format`, `format-check` and `tidy` targets find them.
 pugixml, GoogleTest and nlohmann/json are downloaded at configure time unless installed (`--system-libs`).
 
 ```sh

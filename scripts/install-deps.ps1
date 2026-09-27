@@ -4,8 +4,9 @@
 
 .DESCRIPTION
     Uses Chocolatey (installed if missing) to install CMake, git and vswhere, and optionally the Visual Studio Build
-    Tools with the C++ workload. clang-format and clang-tidy (the versions used by CI) are installed with pip into a
-    virtual environment in <repo>\.tools, where CMake finds them for the format, format-check and tidy targets.
+    Tools with the C++ workload. clang-format and clang-tidy (the versions used by CI) are downloaded as static
+    binaries from https://github.com/cpp-linter/clang-tools-static-binaries into <repo>\.tools\bin, where CMake finds
+    them for the format, format-check and tidy targets.
 
     pugixml, GoogleTest and nlohmann/json are downloaded by CMake with FetchContent at configure time.
 
@@ -14,21 +15,24 @@
 .PARAMETER SkipCMake
     Skip installing CMake.
 .PARAMETER SkipStyleTools
-    Skip installing Python and clang-format/clang-tidy into .tools.
+    Skip installing clang-format/clang-tidy into .tools.
 .PARAMETER InstallBuildTools
     Install the Visual Studio 2022 Build Tools with the C++ workload. Not needed if Visual Studio with the "Desktop
     development with C++" workload is already installed.
 .PARAMETER CMakeVersion
     CMake version to install.
 .PARAMETER StyleToolsVersion
-    clang-format/clang-tidy version to install.
+    clang-format/clang-tidy major version to install.
+.PARAMETER StyleToolsRelease
+    Release of cpp-linter/clang-tools-static-binaries to download the style tools from.
 #>
 param (
     [switch]$SkipCMake,
     [switch]$SkipStyleTools,
     [switch]$InstallBuildTools,
     [string]$CMakeVersion = "3.31.6",
-    [string]$StyleToolsVersion = "18.1.8"
+    [string]$StyleToolsVersion = "18",
+    [string]$StyleToolsRelease = "2026.09.01-5fb8802d"
 )
 
 $MinCMakeVersion = [Version]"3.21.0"
@@ -127,19 +131,18 @@ if (Get-Command vswhere -ErrorAction SilentlyContinue) {
 }
 
 if (-not $SkipStyleTools) {
-    if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
-        Install-ChocoPackage "python3"
-    }
-
-    $toolsDir = Join-Path $RepoRoot ".tools"
+    $arch = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "arm64" } else { "amd64" }
+    $toolsDir = Join-Path $RepoRoot ".tools\bin"
     Write-Output "Installing clang-format and clang-tidy $StyleToolsVersion to $toolsDir..."
-    python -m venv $toolsDir
-    $toolsPython = Join-Path $toolsDir "Scripts\python.exe"
-    & $toolsPython -m pip install --quiet --upgrade pip
-    & $toolsPython -m pip install --quiet "clang-format==$StyleToolsVersion" "clang-tidy==$StyleToolsVersion"
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "Failed to install clang-format/clang-tidy (exit code $LASTEXITCODE)." -ErrorAction Continue
-        exit $LASTEXITCODE
+    New-Item -ItemType Directory -Force -Path $toolsDir | Out-Null
+    foreach ($tool in @("clang-format", "clang-tidy")) {
+        $url = "https://github.com/cpp-linter/clang-tools-static-binaries/releases/download/$StyleToolsRelease/$tool-${StyleToolsVersion}_windows-$arch.exe"
+        try {
+            Invoke-WebRequest -Uri $url -OutFile (Join-Path $toolsDir "$tool-$StyleToolsVersion.exe") -UseBasicParsing
+        } catch {
+            Write-Error "Failed to download ${tool}: $_" -ErrorAction Continue
+            exit 1
+        }
     }
 }
 
