@@ -10,37 +10,23 @@ permissions:
 
 jobs:
   validate:
-    name: Validate version
+    name: Validate release
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.get-version.outputs.version-without-v }}
       prerelease: ${{ steps.get-version.outputs.prerelease != '' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history, so the script can check the tagged commit is on master
+          fetch-depth: 0
       - name: Get version from tag
         id: get-version
         uses: battila7/get-version-action@v2
-      - name: Check tag matches CMake project version
+      - name: Validate release
         env:
           TAG_VERSION: ${{ steps.get-version.outputs.version-without-v }}
-        run: |
-          project_version=$(sed -n 's/^    VERSION \([0-9]*\.[0-9]*\.[0-9]*\)$/\1/p' CMakeLists.txt | head -n 1)
-          suffix=$(sed -n 's/^set(EOLIB_VERSION_SUFFIX "\(.*\)")$/\1/p' CMakeLists.txt | head -n 1)
-          cmake_version="${project_version}${suffix:+-${suffix}}"
-          echo "Tag version:   ${TAG_VERSION}"
-          echo "CMake version: ${cmake_version}"
-          if [ "${TAG_VERSION}" != "${cmake_version}" ]; then
-            echo "::error::Tag version ${TAG_VERSION} does not match CMake version ${cmake_version}"
-            exit 1
-          fi
-      - name: Check CHANGELOG.md has a section for this version
-        env:
-          TAG_VERSION: ${{ steps.get-version.outputs.version-without-v }}
-        run: |
-          if ! grep -qF "## [${TAG_VERSION}]" CHANGELOG.md; then
-            echo "::error::CHANGELOG.md has no section for ${TAG_VERSION}"
-            exit 1
-          fi
+        run: ./scripts/validate-release.sh "${TAG_VERSION}"
 
   package:
     name: Package ${{ matrix.platform }}

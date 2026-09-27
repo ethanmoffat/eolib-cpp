@@ -66,14 +66,6 @@ find_package(eolib 0.1 CONFIG REQUIRED)
 target_link_libraries(my_app PRIVATE eolib::eolib)
 ```
 
-### vcpkg
-
-An overlay port is in [`ports/eolib`](ports/README.md):
-
-```sh
-vcpkg install eolib --overlay-ports=/path/to/eolib-cpp/ports
-```
-
 ## Usage
 
 ```cpp
@@ -186,13 +178,15 @@ eolib-cpp uses [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`, 
 
 To release a new version:
 
-1. Move the `[Unreleased]` changelog entries to a new `## [x.y.z-suffix] - YYYY-MM-DD` section.
+1. Move the `[Unreleased]` changelog entries to a new `## [x.y.z-suffix] - YYYY-MM-DD` section, and update the
+   comparison links at the bottom of `CHANGELOG.md`.
 2. Update `VERSION` in `project()` and `EOLIB_VERSION_SUFFIX` in `CMakeLists.txt`. Leave the suffix empty for
    stable releases.
-3. Commit and push the tag `vx.y.z-suffix`. The release workflow validates the version and changelog, builds and
-   tests the platform packages and the source archive, and publishes a GitHub release. It is marked as a
-   prerelease when the version has a suffix.
-4. Update the [vcpkg port](ports/README.md).
+3. Commit and push to master, then run `./scripts/validate-release.sh x.y.z-suffix`. It checks the version format,
+   the CMake version, the changelog section, date, entries and links, and that the commit is on `origin/master`.
+4. Push the tag `vx.y.z-suffix`. The release workflow runs the same validation before building anything, then
+   builds and tests the platform packages and the source archive, and publishes a GitHub release. It is marked as
+   a prerelease when the version has a suffix.
 
 ## Documentation
 

@@ -1,4 +1,0 @@
-eolib provides CMake targets:
-
-  find_package(eolib CONFIG REQUIRED)
-  target_link_libraries(main PRIVATE eolib::eolib)
