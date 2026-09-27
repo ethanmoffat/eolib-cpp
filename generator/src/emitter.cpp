@@ -136,6 +136,9 @@ struct Context
     bool chunked = false;
     bool reached_optional = false;
     bool reached_dummy = false;
+    /// Whether a non-delimited array without a length has been reached. It consumes the rest of the data (or chunk), so
+    /// it must be the final element.
+    bool reached_unsized_array = false;
     std::map<std::string, FieldData> accessible_fields;
     /// Length field name -> whether it has been referenced by a field.
     std::map<std::string, bool> length_field_referenced;
@@ -419,6 +422,11 @@ private:
         if (context_.reached_dummy)
         {
             throw Error("<dummy> elements must not be followed by any other elements.");
+        }
+        if (context_.reached_unsized_array && instruction.kind != InstructionKind::Break)
+        {
+            throw Error("Non-delimited arrays without a length must be the final element (or the final element in the "
+                        "chunk, if chunked reading is enabled).");
         }
 
         switch (instruction.kind)
@@ -957,6 +965,10 @@ private:
         {
             context_.reached_optional = true;
         }
+        if (!instruction.delimited && !instruction.length)
+        {
+            context_.reached_unsized_array = true;
+        }
     }
 
     void ValidateArray(const Instruction& instruction, const Type& type)
@@ -1208,6 +1220,7 @@ private:
 
         context_.reached_optional = false;
         context_.reached_dummy = false;
+        context_.reached_unsized_array = false;
 
         deserialize_.Line("reader.NextChunk();");
         serialize_.Line("writer.AddByte(0xFF);");
@@ -1221,6 +1234,7 @@ private:
         CodeWriter deserialize;
         bool reached_optional = false;
         bool reached_dummy = false;
+        bool reached_unsized_array = false;
     };
 
     void GenerateSwitch(const Instruction& instruction)
@@ -1250,6 +1264,7 @@ private:
         SwitchCases cases;
         cases.reached_optional = context_.reached_optional;
         cases.reached_dummy = context_.reached_dummy;
+        cases.reached_unsized_array = context_.reached_unsized_array;
 
         for (const auto& protocol_case : instruction.cases)
         {
@@ -1301,6 +1316,7 @@ private:
 
         context_.reached_optional = cases.reached_optional;
         context_.reached_dummy = cases.reached_dummy;
+        context_.reached_unsized_array = cases.reached_unsized_array;
 
         equals_.push_back(data_field_name);
         to_string_.emplace_back(data_field_name, data_field_name);
@@ -1387,6 +1403,7 @@ private:
         case_context.chunked = context_.chunked;
         case_context.reached_optional = context_.reached_optional;
         case_context.reached_dummy = context_.reached_dummy;
+        case_context.reached_unsized_array = context_.reached_unsized_array;
 
         ObjectGenerator case_generator(types_, file_, case_type_name, qualified_name_ + "::" + case_type_name,
                                        case_context);
@@ -1406,6 +1423,7 @@ private:
 
         cases.reached_optional = cases.reached_optional || case_generator.GetContext().reached_optional;
         cases.reached_dummy = cases.reached_dummy || case_generator.GetContext().reached_dummy;
+        cases.reached_unsized_array = cases.reached_unsized_array || case_generator.GetContext().reached_unsized_array;
 
         cases.serialize.Line(label);
         cases.serialize.Line("{");

@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DataEncrypter` and `StringEncoder` functions now transform data in place instead of returning a copy. Each function has `(std::uint8_t*, std::size_t)`, `std::vector<std::uint8_t>&` and `std::string&` overloads. `StringEncoder::EncodeInPlace`/`DecodeInPlace` are replaced by the `EncodeString`/`DecodeString` pointer overloads.
 - Generated structs and packets are now `final`.
 - Functions that cannot throw are now `noexcept`, including the `Serializable::ByteSize`, `Packet::Family`, `Packet::Action` and `SequenceStart::Value` virtual functions. Implementations of these interfaces must also be `noexcept`.
+- `eolib-protocol-gen` now rejects protocol files where a non-delimited array without a length is followed by another element in the same chunk, as required by `eo-protocol/docs/elements.md`.
 - Complete documentation for the public API: every hand-written and generated function now documents its parameters, return value and exceptions, and generated switch data members include the XML comment of the `<switch>` element.
 
 ### Fixed

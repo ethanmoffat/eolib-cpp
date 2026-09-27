@@ -47,6 +47,7 @@ add_executable(
     protocol/captured_packet_properties.cpp
     protocol/captured_packets_test.cpp
     protocol/generated_protocol_test.cpp
+    protocol/protocol_rules_test.cpp
     protocol/pub_map_test.cpp
     protocol/serializable_test.cpp
     version_test.cpp
