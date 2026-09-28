@@ -122,7 +122,7 @@ jobs:
   docs:
     name: Docs
     needs: validate
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     env:
       VERSION: ${{ needs.validate.outputs.version }}
     steps:

@@ -8,9 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- An API reference site for each release at https://ethanmoffat.github.io/eolib-cpp/, built with Doxygen, with a
-  summary page, the getting started guide, namespace descriptions and a version picker. Each release also includes
-  the docs as `eolib-<version>-docs.tar.gz`.
+- An API reference site at https://ethanmoffat.github.io/eolib-cpp/, built with Doxygen, with a summary page, the
+  getting started guide, namespace descriptions and a version picker. It has the newest release of each minor version.
+  Each release also includes the docs as `eolib-<version>-docs.tar.gz`.
 - `EOLIB_BUILD_DOCS` CMake option (off by default), which adds a `docs` target that builds the API reference.
 - `scripts/serve-docs.sh`, which builds the docs site for the working tree and serves it on localhost.
 - `scripts/install-deps.sh --docs` and `scripts/install-deps.ps1 -Docs` install Doxygen into `.tools/bin`.

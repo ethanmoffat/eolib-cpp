@@ -60,3 +60,8 @@ SEARCHENGINE           = YES
 SERVER_BASED_SEARCH    = NO
 GENERATE_LATEX         = NO
 HAVE_DOT               = NO
+
+# Keep each version small on the docs site: inheritance is listed as links instead of diagram images, and the headers
+# aren't copied into the docs (they're in the repository and the release packages).
+CLASS_GRAPH            = TEXT
+VERBATIM_HEADERS       = NO

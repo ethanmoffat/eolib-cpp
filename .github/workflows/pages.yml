@@ -3,6 +3,7 @@ name: Pages
 # Publishes the docs of every release to GitHub Pages. Each release has its docs attached as eolib-<version>-docs.tar.gz
 # (built by the release workflow), and the site is reassembled from all of them on every deployment. Releases without
 # a docs archive (published before the docs existed) have it built from their tag and attached first.
+
 on:
   workflow_run:
     workflows: [Release]
@@ -43,7 +44,7 @@ jobs:
     name: Build docs for ${{ matrix.tag }}
     needs: find-missing
     if: needs.find-missing.outputs.tags != '[]'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     strategy:
@@ -63,7 +64,9 @@ jobs:
       - name: Build docs
         env:
           TAG: ${{ matrix.tag }}
-        run: ./scripts/build-docs.sh --source release --archive "eolib-${TAG#v}-docs.tar.gz"
+        run: >
+          ./scripts/build-docs.sh --source release --version "${TAG#v}"
+          --archive "eolib-${TAG#v}-docs.tar.gz"
       - name: Attach docs to the release
         env:
           GH_TOKEN: ${{ github.token }}
