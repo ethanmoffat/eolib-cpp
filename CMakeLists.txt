@@ -27,6 +27,7 @@ option(EOLIB_BUILD_TESTS "Build the eolib unit tests" ${EOLIB_IS_TOP_LEVEL})
 option(EOLIB_INSTALL "Generate install rules for eolib" ${EOLIB_IS_TOP_LEVEL})
 option(EOLIB_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 option(EOLIB_OFFLINE "Build without downloading dependencies (no internet connection)" OFF)
+option(EOLIB_BUILD_DOCS "Add a docs target that builds the HTML API reference with Doxygen" OFF)
 
 if(EOLIB_IS_TOP_LEVEL)
     set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -50,6 +51,10 @@ endif()
 
 if(EOLIB_IS_TOP_LEVEL)
     include(EolibStyle)
+endif()
+
+if(EOLIB_BUILD_DOCS)
+    include(EolibDocs)
 endif()
 
 if(EOLIB_BUILD_TESTS)

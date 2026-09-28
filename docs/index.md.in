@@ -1,0 +1,48 @@
+# eolib-cpp
+
+Core C++17 library for writing Endless Online applications.
+
+The protocol code is generated from the [eo-protocol](https://github.com/cirras/eo-protocol) XML specification. The
+API follows the conventions of [eolib-dotnet](https://ethanmoffat.github.io/eolib-dotnet/) and
+[eolib-go](https://pkg.go.dev/github.com/ethanmoffat/eolib-go/v3). The source code is available on
+[GitHub](https://github.com/ethanmoffat/eolib-cpp).
+
+## Features
+
+Read and write the following EO data structures:
+
+- Client and server packets (eolib::protocol::net::client, eolib::protocol::net::server)
+- Endless Map Files (EMF) (eolib::protocol::map)
+- Client pub files: items, NPCs, spells and classes (eolib::protocol::pub)
+- Server pub files: talk, shops, drops, inns and skill masters (eolib::protocol::pub::server)
+
+Utilities:
+
+- Data reader and writer (eolib::data::EoReader, eolib::data::EoWriter)
+- Number and string encoding (eolib::data::NumberEncoder, eolib::data::StringEncoder)
+- Data encryption and server verification (eolib::encrypt)
+- Packet sequencing (eolib::packet)
+
+## Installation
+
+Add eolib to a CMake project with `FetchContent` using the release source archive, or extract a prebuilt package from
+the [releases](https://github.com/ethanmoffat/eolib-cpp/releases) and use `find_package(eolib CONFIG REQUIRED)`.
+Either way, link the `eolib::eolib` target:
+
+```cmake
+include(FetchContent)
+FetchContent_Declare(
+    eolib
+    URL https://github.com/ethanmoffat/eolib-cpp/releases/download/v@EOLIB_DOCS_VERSION@/eolib-@EOLIB_DOCS_VERSION@-src.tar.gz
+    URL_HASH SHA512=<contents of eolib-@EOLIB_DOCS_VERSION@-src.tar.gz.sha512>)
+FetchContent_MakeAvailable(eolib)
+
+target_link_libraries(my_app PRIVATE eolib::eolib)
+```
+
+## Where to start
+
+- @ref md_getting-started "Getting started" walks through the main parts of the API.
+- [Namespaces](namespaces.html) lists every namespace with a short description.
+- [Classes](annotated.html) lists every class and struct, including the generated packets.
+- The [changelog](https://github.com/ethanmoffat/eolib-cpp/blob/master/CHANGELOG.md) lists the changes in each release.

@@ -1,0 +1,63 @@
+/// @namespace eolib
+/// Core library for writing Endless Online applications.
+///
+/// The root namespace holds the error types (eolib::EolibError, eolib::SerializationError and
+/// eolib::DeserializationError) and the library version macros in <tt>eolib/version.hpp</tt>. Everything else lives in
+/// a nested namespace.
+
+/// @namespace eolib::data
+/// Reading and writing EO data.
+///
+/// eolib::data::EoReader and eolib::data::EoWriter read and write the EO number and string types, and all protocol
+/// types are serialized with them. eolib::data::NumberEncoder and eolib::data::StringEncoder expose the underlying
+/// encodings, and eolib::data::EoNumericLimits holds the maximum value of each EO number type.
+
+/// @namespace eolib::encrypt
+/// Packet encryption and server verification.
+///
+/// eolib::encrypt::DataEncrypter implements the interleave, flip and swap steps used to encrypt and decrypt packet
+/// data, and eolib::encrypt::ServerVerifier hashes the challenge sent by a client during connection initialization.
+
+/// @namespace eolib::packet
+/// Packet sequencing.
+///
+/// eolib::packet::PacketSequencer generates the sequence numbers sent with each client packet. The sequence start
+/// types create the initial sequence value from the values sent in the init, account reply and ping packets.
+
+/// @namespace eolib::protocol
+/// Types generated from the eo-protocol specification.
+///
+/// This namespace holds the types shared by the whole protocol, such as eolib::protocol::Coords and
+/// eolib::protocol::Direction, and the eolib::protocol::Serializable interface implemented by every generated struct and
+/// packet. The nested namespaces follow the layout of the protocol XML files.
+
+/// @namespace eolib::protocol::net
+/// Types shared by client and server packets.
+///
+/// Holds the eolib::protocol::net::Packet interface, the eolib::protocol::net::PacketFamily and
+/// eolib::protocol::net::PacketAction enums that identify a packet, and the structs and enums used by both client and
+/// server packets.
+
+/// @namespace eolib::protocol::net::client
+/// Packets sent by the client, and the structs and enums they use.
+///
+/// Each packet is named <tt>\<Family\>\<Action\>ClientPacket</tt>. A game server reads them with
+/// eolib::protocol::net::client::PacketFactory, which creates the packet for a family and action.
+
+/// @namespace eolib::protocol::net::server
+/// Packets sent by the server, and the structs and enums they use.
+///
+/// Each packet is named <tt>\<Family\>\<Action\>ServerPacket</tt>. A game client reads them with
+/// eolib::protocol::net::server::PacketFactory, which creates the packet for a family and action.
+
+/// @namespace eolib::protocol::pub
+/// Client pub files: items (eolib::protocol::pub::Eif), NPCs (eolib::protocol::pub::Enf), spells
+/// (eolib::protocol::pub::Esf) and classes (eolib::protocol::pub::Ecf), and the records and enums they use.
+
+/// @namespace eolib::protocol::pub::server
+/// Server pub files: talk (eolib::protocol::pub::server::TalkFile), shops (eolib::protocol::pub::server::ShopFile),
+/// drops (eolib::protocol::pub::server::DropFile), inns (eolib::protocol::pub::server::InnFile) and skill masters
+/// (eolib::protocol::pub::server::SkillMasterFile).
+
+/// @namespace eolib::protocol::map
+/// Endless Map Files (eolib::protocol::map::Emf), and the structs and enums they use.

@@ -1,6 +1,7 @@
 # eolib-cpp
 
 [![Build](https://github.com/ethanmoffat/eolib-cpp/actions/workflows/build.yml/badge.svg)](https://github.com/ethanmoffat/eolib-cpp/actions/workflows/build.yml)
+[![Docs](https://img.shields.io/badge/docs-API%20reference-blue)](https://ethanmoffat.github.io/eolib-cpp/)
 
 Core C++ library for writing Endless Online applications.
 
@@ -156,6 +157,7 @@ fails with an explanation if a dependency isn't available locally.
 | `EOLIB_INSTALL` | `ON` when top-level | Generate install rules and the CMake package |
 | `EOLIB_WARNINGS_AS_ERRORS` | `OFF` | Treat compiler warnings as errors |
 | `EOLIB_OFFLINE` | `OFF` | Build without downloading dependencies (see [Offline builds](#offline-builds)) |
+| `EOLIB_BUILD_DOCS` | `OFF` | Add a `docs` target that builds the API reference (see [Building the docs](#building-the-docs)) |
 | `BUILD_SHARED_LIBS` | `OFF` | Build a shared library |
 | `EOLIB_PROTOCOL_XML_DIR` | `eo-protocol/xml` | The protocol XML directory to generate code from |
 | `EOLIB_GENERATOR_EXECUTABLE` | (empty) | A prebuilt `eolib-protocol-gen` to use instead of building one |
@@ -181,6 +183,24 @@ cmake --build build --target tidy          # run clang-tidy
 
 Generated code is not format-checked.
 
+### Building the docs
+
+The API reference is built with Doxygen 1.18, using the configuration and pages in `docs/`. Install it into `.tools/bin`
+with `sudo ./scripts/install-deps.sh --docs` (or `./scripts/install-deps.ps1 -Docs`), then either:
+
+```sh
+cmake -S . -B build -DEOLIB_BUILD_DOCS=ON
+cmake --build build --target docs          # writes build/docs/html
+```
+
+```sh
+./scripts/serve-docs.sh                    # builds the docs and serves the site at http://localhost:8000
+./scripts/serve-docs.sh --releases         # also includes the published releases, to check the version picker
+```
+
+`serve-docs.sh` shows the working tree as `<version>-local`, next to the published versions. Only releases are
+published: the docs site is not updated for changes on master.
+
 ## Versioning and releases
 
 eolib-cpp uses [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`, with an optional `-beta.N` or
@@ -199,9 +219,12 @@ To release a new version:
 4. Push the tag `vx.y.z-suffix`. The release workflow runs `validate-release.sh` again, which also checks that the
    commit is on `origin/master`, before building anything. It then builds and tests the platform packages and the
    source archive, and publishes a GitHub release. It is marked as a prerelease when the version has a suffix.
+   The release includes the API reference (`eolib-<version>-docs.tar.gz`), and the Pages workflow then publishes
+   it to the [docs site](https://ethanmoffat.github.io/eolib-cpp/).
 
 ## Documentation
 
+- [API reference](https://ethanmoffat.github.io/eolib-cpp/), for each release
 - [Getting started](docs/getting-started.md)
 
 ## License

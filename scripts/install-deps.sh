@@ -12,6 +12,8 @@
 #     format, format-check and tidy targets.
 #   - System packages for pugixml, GoogleTest and nlohmann/json. Without them, CMake downloads these with
 #     FetchContent at configure time.
+#   - Doxygen (the version used by CI, with --docs), downloaded from https://github.com/doxygen/doxygen/releases into
+#     <repo>/.tools/bin. The docs target (EOLIB_BUILD_DOCS) and scripts/build-docs.sh find it there.
 
 SCRIPT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
 REPO_ROOT="$(dirname "${SCRIPT_ROOT}")"
@@ -20,10 +22,12 @@ MIN_CMAKE_VERSION="3.21.0"
 CMAKE_VERSION="3.31.6"
 STYLE_TOOLS_VERSION="18"
 STYLE_TOOLS_RELEASE="2026.09.01-5fb8802d"
+DOXYGEN_VERSION="1.18.0"
 
 SKIPCMAKE=false
 SKIPSTYLETOOLS=false
 SYSTEMLIBS=false
+DOCS=false
 DRYRUN=false
 HELP=false
 
@@ -35,6 +39,7 @@ function parse_options() {
             --skip-cmake)          SKIPCMAKE=true ;;
             --skip-style-tools)    SKIPSTYLETOOLS=true ;;
             --system-libs)         SYSTEMLIBS=true ;;
+            --docs)                DOCS=true ;;
             --cmake-version)       CMAKE_VERSION="${2}"; shift ;;
             --dry-run)             DRYRUN=true ;;
             -h|--help)             HELP=true; break ;;
@@ -57,6 +62,7 @@ function display_usage() {
     echo "  --skip-style-tools        Skip installing clang-format/clang-tidy ${STYLE_TOOLS_VERSION} into .tools"
     echo "  --system-libs             Install pugixml, GoogleTest and nlohmann/json system packages, so CMake"
     echo "                            doesn't download them"
+    echo "  --docs                    Also install Doxygen ${DOXYGEN_VERSION} into .tools, to build the docs"
     echo "  --cmake-version <ver>     CMake version to download if the system CMake is too old [default: ${CMAKE_VERSION}]"
     echo "  --dry-run                 Print the commands without running them"
     echo "  -h --help                 Display this message"
@@ -260,6 +266,42 @@ function install_style_tools() {
     done
 }
 
+function install_doxygen() {
+    if [[ "${DOCS}" == "false" ]]; then
+        return
+    fi
+
+    local archive binary
+    case "${PLATFORM_NAME}-$(uname -m)" in
+        macos-arm64)          archive="doxygen-${DOXYGEN_VERSION}-mac-arm.zip"; binary="doxygen-${DOXYGEN_VERSION}/doxygen" ;;
+        macos-x86_64)         archive="doxygen-${DOXYGEN_VERSION}-mac-intel.zip"; binary="doxygen-${DOXYGEN_VERSION}/doxygen" ;;
+        alpine-*)             archive="" ;;
+        *-x86_64|*-amd64)     archive="doxygen-${DOXYGEN_VERSION}.linux.bin.tar.gz"; binary="doxygen-${DOXYGEN_VERSION}/bin/doxygen" ;;
+        *)                    archive="" ;;
+    esac
+    if [[ -z "${archive}" ]]; then
+        # The official Linux binaries require glibc and x86_64.
+        >&2 echo "No Doxygen ${DOXYGEN_VERSION} binaries are available for ${PLATFORM_NAME} $(uname -m). Install" \
+            "doxygen with the system package manager; its version may produce slightly different docs."
+        return
+    fi
+
+    local tools_dir="${REPO_ROOT}/.tools/bin"
+    local download_dir="${TMPDIR:-/tmp}/eolib-doxygen-$$"
+    echo "Installing Doxygen ${DOXYGEN_VERSION} to ${tools_dir}..."
+    run_as_user mkdir -p "${tools_dir}" "${download_dir}"
+    run_as_user curl -fsSL -o "${download_dir}/${archive}" \
+        "https://github.com/doxygen/doxygen/releases/download/Release_${DOXYGEN_VERSION//./_}/${archive}"
+    if [[ "${archive}" == *.zip ]]; then
+        run_as_user unzip -q -o "${download_dir}/${archive}" "${binary}" -d "${download_dir}"
+    else
+        run_as_user tar -xzf "${download_dir}/${archive}" -C "${download_dir}" "${binary}"
+    fi
+    run_as_user cp "${download_dir}/${binary}" "${tools_dir}/doxygen"
+    run_as_user chmod +x "${tools_dir}/doxygen"
+    run rm -rf "${download_dir}"
+}
+
 parse_options "$@"
 
 if [[ "${HELP}" == "true" ]]; then
@@ -290,6 +332,7 @@ fi
 install_packages
 install_cmake
 install_style_tools
+install_doxygen
 
 echo ""
 echo "Done. Initialize the submodules if you haven't already: git submodule update --init --recursive"

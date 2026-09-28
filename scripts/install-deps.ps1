@@ -8,6 +8,9 @@
     binaries from https://github.com/cpp-linter/clang-tools-static-binaries into <repo>\.tools\bin, where CMake finds
     them for the format, format-check and tidy targets.
 
+    With -Docs, Doxygen (the version used by CI) is downloaded from https://github.com/doxygen/doxygen/releases into
+    <repo>\.tools\bin, where the docs target (EOLIB_BUILD_DOCS) finds it.
+
     pugixml, GoogleTest and nlohmann/json are downloaded by CMake with FetchContent at configure time.
 
     This script must be run as administrator.
@@ -16,6 +19,8 @@
     Skip installing CMake.
 .PARAMETER SkipStyleTools
     Skip installing clang-format/clang-tidy into .tools.
+.PARAMETER Docs
+    Also install Doxygen into .tools, to build the docs.
 .PARAMETER InstallBuildTools
     Install the Visual Studio 2022 Build Tools with the C++ workload. Not needed if Visual Studio with the "Desktop
     development with C++" workload is already installed.
@@ -25,14 +30,18 @@
     clang-format/clang-tidy major version to install.
 .PARAMETER StyleToolsRelease
     Release of cpp-linter/clang-tools-static-binaries to download the style tools from.
+.PARAMETER DoxygenVersion
+    Doxygen version to install with -Docs.
 #>
 param (
     [switch]$SkipCMake,
     [switch]$SkipStyleTools,
+    [switch]$Docs,
     [switch]$InstallBuildTools,
     [string]$CMakeVersion = "3.31.6",
     [string]$StyleToolsVersion = "18",
-    [string]$StyleToolsRelease = "2026.09.01-5fb8802d"
+    [string]$StyleToolsRelease = "2026.09.01-5fb8802d",
+    [string]$DoxygenVersion = "1.18.0"
 )
 
 $MinCMakeVersion = [Version]"3.21.0"
@@ -143,6 +152,26 @@ if (-not $SkipStyleTools) {
             Write-Error "Failed to download ${tool}: $_" -ErrorAction Continue
             exit 1
         }
+    }
+}
+
+if ($Docs) {
+    $toolsDir = Join-Path $RepoRoot ".tools\bin"
+    $archive = "doxygen-$DoxygenVersion.windows.x64.bin.zip"
+    $downloadDir = Join-Path ([System.IO.Path]::GetTempPath()) "eolib-doxygen-$PID"
+    Write-Output "Installing Doxygen $DoxygenVersion to $toolsDir..."
+    New-Item -ItemType Directory -Force -Path $toolsDir, $downloadDir | Out-Null
+    try {
+        $release = "Release_" + $DoxygenVersion.Replace(".", "_")
+        Invoke-WebRequest -Uri "https://github.com/doxygen/doxygen/releases/download/$release/$archive" -OutFile (Join-Path $downloadDir $archive) -UseBasicParsing
+        Expand-Archive -Path (Join-Path $downloadDir $archive) -DestinationPath $downloadDir -Force
+        # doxygen.exe loads libclang.dll from its own directory.
+        Copy-Item -Path (Join-Path $downloadDir "doxygen.exe"), (Join-Path $downloadDir "libclang.dll") -Destination $toolsDir -Force
+    } catch {
+        Write-Error "Failed to download Doxygen: $_" -ErrorAction Continue
+        exit 1
+    } finally {
+        Remove-Item -Recurse -Force $downloadDir -ErrorAction SilentlyContinue
     }
 }
 

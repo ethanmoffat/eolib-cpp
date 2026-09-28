@@ -6,13 +6,11 @@ on:
     paths-ignore:
       - "CHANGELOG.md"
       - "README.md"
-      - "docs/**"
   pull_request:
     branches: ["master"]
     paths-ignore:
       - "CHANGELOG.md"
       - "README.md"
-      - "docs/**"
   workflow_dispatch:
 
 concurrency:
@@ -37,6 +35,18 @@ jobs:
           chmod +x .tools/bin/clang-format
       - name: Check formatting
         run: git ls-files -z '*.cpp' '*.hpp' | xargs -0 .tools/bin/clang-format --dry-run --Werror --style=file
+
+  docs:
+    name: Docs
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - name: Install Doxygen
+        run: sudo ./scripts/install-deps.sh --skip-cmake --skip-style-tools --docs
+      - name: Build docs
+        run: ./scripts/build-docs.sh --warnings-as-errors
 
   build-test:
     name: ${{ matrix.name }}

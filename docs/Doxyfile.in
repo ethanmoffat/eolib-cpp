@@ -1,0 +1,62 @@
+# Doxygen configuration for the eolib-cpp API reference. Only settings that differ from the defaults are listed.
+#
+# The @...@ placeholders are replaced by the EOLIB_BUILD_DOCS CMake target (cmake/EolibDocs.cmake) or by
+# scripts/build-docs.sh.
+
+PROJECT_NAME           = eolib-cpp
+PROJECT_NUMBER         = @EOLIB_DOCS_VERSION@
+PROJECT_BRIEF          = "Core C++ library for writing Endless Online applications"
+OUTPUT_DIRECTORY       = @EOLIB_DOCS_WORK_DIR@
+CREATE_SUBDIRS         = NO
+
+INPUT                  = @EOLIB_DOCS_MAINPAGE@ \
+                         @EOLIB_DOCS_CONFIG_DIR@/getting-started.md \
+                         @EOLIB_DOCS_CONFIG_DIR@/namespaces.dox \
+                         @EOLIB_DOCS_SOURCE_DIR@/include \
+                         @EOLIB_DOCS_GENERATED_DIR@
+FILE_PATTERNS          = *.hpp
+RECURSIVE              = YES
+EXCLUDE_PATTERNS       = */detail/*
+EXCLUDE_SYMBOLS        = detail \
+                         *::detail \
+                         *::detail::*
+USE_MDFILE_AS_MAINPAGE = @EOLIB_DOCS_MAINPAGE@
+STRIP_FROM_PATH        = @EOLIB_DOCS_SOURCE_DIR@/include \
+                         @EOLIB_DOCS_GENERATED_DIR@ \
+                         @EOLIB_DOCS_CONFIG_DIR@ \
+                         @EOLIB_DOCS_WORK_DIR@
+STRIP_FROM_INC_PATH    = @EOLIB_DOCS_SOURCE_DIR@/include \
+                         @EOLIB_DOCS_GENERATED_DIR@
+
+JAVADOC_AUTOBRIEF      = YES
+QT_AUTOBRIEF           = YES
+EXTRACT_ALL            = YES
+EXTRACT_STATIC         = YES
+HIDE_UNDOC_RELATIONS   = NO
+SORT_MEMBER_DOCS       = NO
+SHOW_USED_FILES        = NO
+TOC_INCLUDE_HEADINGS   = 3
+
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+PREDEFINED             = EOLIB_API=
+
+QUIET                  = YES
+WARN_IF_UNDOCUMENTED   = NO
+WARN_AS_ERROR          = @EOLIB_DOCS_WARN_AS_ERROR@
+
+GENERATE_HTML          = YES
+HTML_OUTPUT            = @EOLIB_DOCS_OUTPUT_DIR@
+HTML_EXTRA_STYLESHEET  = @EOLIB_DOCS_CONFIG_DIR@/doxygen-awesome/doxygen-awesome.css \
+                         @EOLIB_DOCS_CONFIG_DIR@/doxygen-awesome/doxygen-awesome-sidebar-only.css
+HTML_COLORSTYLE        = LIGHT
+GENERATE_TREEVIEW      = YES
+PAGE_OUTLINE_PANEL     = NO
+DISABLE_INDEX          = NO
+FULL_SIDEBAR           = NO
+TIMESTAMP              = NO
+SEARCHENGINE           = YES
+SERVER_BASED_SEARCH    = NO
+GENERATE_LATEX         = NO
+HAVE_DOT               = NO

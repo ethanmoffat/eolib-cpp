@@ -119,9 +119,29 @@ jobs:
             eolib-*-src.tar.gz.sha512
           if-no-files-found: error
 
+  docs:
+    name: Docs
+    needs: validate
+    runs-on: ubuntu-24.04
+    env:
+      VERSION: ${{ needs.validate.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - name: Install Doxygen
+        run: sudo ./scripts/install-deps.sh --skip-cmake --skip-style-tools --docs
+      - name: Build docs
+        run: ./scripts/build-docs.sh --warnings-as-errors --archive "eolib-${VERSION}-docs.tar.gz"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: eolib-${{ needs.validate.outputs.version }}-docs
+          path: eolib-*-docs.tar.gz
+          if-no-files-found: error
+
   github-release:
     name: GitHub release
-    needs: [validate, package, source]
+    needs: [validate, package, source, docs]
     runs-on: ubuntu-latest
     permissions:
       contents: write
