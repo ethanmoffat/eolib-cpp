@@ -24,4 +24,8 @@ std::string MemberIdentifier(const std::string& name);
 /// Escapes a string for use in a C++ string literal (including the quotes).
 std::string StringLiteral(const std::string& value);
 
+/// Escapes the characters that start a Doxygen command or link (\\, @ and #) in text from the protocol XML, so it
+/// is shown as written in the generated documentation.
+std::string DocText(const std::string& text);
+
 } // namespace eolib::generator

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Protocol comments containing `#`, `@` or `\` are escaped in the generated documentation comments, so Doxygen shows
+  them as written instead of treating them as commands or links (e.g. `#nowall`).
+
 ## [0.1.0-beta.2] - 2026-09-27
 
 ### Added

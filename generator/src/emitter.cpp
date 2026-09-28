@@ -192,7 +192,7 @@ public:
 
         if (comment)
         {
-            declaration.DocComment(*comment);
+            declaration.DocComment(DocText(*comment));
         }
         const std::string base = packet ? "net::Packet" : "Serializable";
         declaration.Line("class EOLIB_API " + class_name_ + " final : public " + base);
@@ -473,7 +473,7 @@ private:
 
     void AddMemberDocs(const Instruction& instruction, const std::vector<std::string>& notes)
     {
-        std::string docs = instruction.comment.value_or("");
+        std::string docs = DocText(instruction.comment.value_or(""));
         if (!notes.empty())
         {
             if (!docs.empty())
@@ -1301,7 +1301,7 @@ private:
         std::string data_docs = "Data associated with the `" + field.identifier + "` field.";
         if (instruction.comment)
         {
-            data_docs += "\n\n" + *instruction.comment;
+            data_docs += "\n\n" + DocText(*instruction.comment);
         }
         members_.DocComment("Data associated with different values of the `" + field.identifier + "` field.");
         members_.Line("using " + data_type_name + " = std::variant<" + Join(cases.alternatives, ", ") + ">;");
@@ -1416,7 +1416,7 @@ private:
         std::string docs = "Data associated with " + field.identifier + " " + description + ".";
         if (protocol_case.comment)
         {
-            docs += "\n\n" + *protocol_case.comment;
+            docs += "\n\n" + DocText(*protocol_case.comment);
         }
 
         CodeWriter case_declaration;
@@ -1606,7 +1606,7 @@ private:
 
             if (protocol_enum.comment)
             {
-                header.DocComment(*protocol_enum.comment);
+                header.DocComment(DocText(*protocol_enum.comment));
             }
             header.Line("enum class " + protocol_enum.name + " : int");
             header.Line("{");
@@ -1620,7 +1620,7 @@ private:
                 }
                 if (value.comment)
                 {
-                    header.DocComment(*value.comment);
+                    header.DocComment(DocText(*value.comment));
                 }
                 header.Line(value.name + " = " + std::to_string(value.ordinal) + ",");
             }

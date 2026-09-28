@@ -46,6 +46,13 @@ TEST(NamesTest, StringLiteralEscapesSpecialCharacters)
     EXPECT_EQ(StringLiteral(std::string("\xFF", 1)), "\"\\xFF\"");
 }
 
+TEST(NamesTest, DocTextEscapesDoxygenCommandCharacters)
+{
+    EXPECT_EQ(DocText("Walking with #nowall"), "Walking with \\#nowall");
+    EXPECT_EQ(DocText("a@b\\c"), "a\\@b\\\\c");
+    EXPECT_EQ(DocText("reply_code > 9"), "reply_code > 9");
+}
+
 TEST(NamesTest, StringLiteralSplitsHexEscapeFollowedByHexDigit)
 {
     const std::string literal = StringLiteral(std::string("\x01"

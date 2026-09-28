@@ -125,4 +125,19 @@ std::string StringLiteral(const std::string& value)
     return result;
 }
 
+std::string DocText(const std::string& text)
+{
+    std::string result;
+    result.reserve(text.size());
+    for (const char c : text)
+    {
+        if (c == '\\' || c == '@' || c == '#')
+        {
+            result += '\\';
+        }
+        result += c;
+    }
+    return result;
+}
+
 } // namespace eolib::generator
