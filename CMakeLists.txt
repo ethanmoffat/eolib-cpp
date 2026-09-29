@@ -8,7 +8,7 @@ project(
     DESCRIPTION "Core C++ library for writing Endless Online applications"
     HOMEPAGE_URL "https://github.com/ethanmoffat/eolib-cpp"
     LANGUAGES CXX)
-set(EOLIB_VERSION_SUFFIX "beta.2")
+set(EOLIB_VERSION_SUFFIX "beta.3")
 
 if(POLICY CMP0135)
     cmake_policy(SET CMP0135 NEW)

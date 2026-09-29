@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-beta.3] - 2026-09-29
+
 ### Added
 - An API reference site at https://ethanmoffat.github.io/eolib-cpp/, built with Doxygen, with a summary page, the
   getting started guide, namespace descriptions and a version picker. It has the newest release of each minor version.
@@ -59,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tests for the packets in `eo-captured-packets`, checking byte-exact round trips and the field values of each packet against the captured properties, and pub/map file tests.
 - Documentation: getting started guide.
 
-[Unreleased]: https://github.com/ethanmoffat/eolib-cpp/compare/v0.1.0-beta.2...HEAD
+[Unreleased]: https://github.com/ethanmoffat/eolib-cpp/compare/v0.1.0-beta.3...HEAD
+[0.1.0-beta.3]: https://github.com/ethanmoffat/eolib-cpp/releases/tag/v0.1.0-beta.3
 [0.1.0-beta.2]: https://github.com/ethanmoffat/eolib-cpp/releases/tag/v0.1.0-beta.2
 [0.1.0-beta.1]: https://github.com/ethanmoffat/eolib-cpp/releases/tag/v0.1.0-beta.1
