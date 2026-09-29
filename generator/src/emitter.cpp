@@ -1918,6 +1918,14 @@ private:
                           side + " packet has the specified family and action.");
         header.Line("static std::unique_ptr<Packet> Create(PacketFamily family, PacketAction action);");
         header.Line();
+        header.DocComment("Checks whether a " + side +
+                          " packet exists with the specified family and action, without creating it.\n\n"
+                          "@param family the packet family.\n"
+                          "@param action the packet action.\n"
+                          "@return true if a " +
+                          side + " packet has the specified family and action, otherwise false.");
+        header.Line("static bool Contains(PacketFamily family, PacketAction action) noexcept;");
+        header.Line();
         header.DocComment("Creates a " + side +
                           " packet with the specified family and action, and deserializes it from the reader.\n\n"
                           "@param family the packet family.\n"
@@ -1972,6 +1980,35 @@ private:
         source.Line("default:");
         source.Indent();
         source.Line("return nullptr;");
+        source.Dedent();
+        source.Close();
+        source.Close();
+        source.Line();
+
+        source.Open("bool PacketFactory::Contains(PacketFamily family, PacketAction action) noexcept");
+        source.Open("switch (family)");
+        for (const auto& family : family_order)
+        {
+            source.Line("case PacketFamily::" + family + ":");
+            source.Indent();
+            source.Open("switch (action)");
+            for (const auto* packet : by_family[family])
+            {
+                source.Line("case PacketAction::" + packet->action + ":");
+            }
+            source.Indent();
+            source.Line("return true;");
+            source.Dedent();
+            source.Line("default:");
+            source.Indent();
+            source.Line("return false;");
+            source.Dedent();
+            source.Close();
+            source.Dedent();
+        }
+        source.Line("default:");
+        source.Indent();
+        source.Line("return false;");
         source.Dedent();
         source.Close();
         source.Close();

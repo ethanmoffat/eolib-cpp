@@ -80,6 +80,15 @@ if (auto* received = dynamic_cast<client::WalkPlayerClientPacket*>(packet.get())
 }
 ```
 
+To check whether a family and action identify a known packet without creating it, use `PacketFactory::Contains`:
+
+```cpp
+if (!client::PacketFactory::Contains(family, action))
+{
+    // unknown packet
+}
+```
+
 `EoReader`'s constructors copy (or take ownership of) the data. To read a buffer you own without copying it, use
 `EoReader::View`. The buffer must outlive the reader and its slices; generated types copy their fields out, so it only
 needs to live until `Deserialize` returns:

@@ -165,6 +165,32 @@ TEST(GeneratedProtocolTest, PacketFactory)
     EXPECT_EQ(client::PacketFactory::Create(PacketFamily::Walk, PacketAction::Junk), nullptr);
 }
 
+TEST(GeneratedProtocolTest, PacketFactoryContains)
+{
+    EXPECT_TRUE(client::PacketFactory::Contains(PacketFamily::Walk, PacketAction::Player));
+    EXPECT_FALSE(client::PacketFactory::Contains(PacketFamily::Walk, PacketAction::Junk));
+    EXPECT_FALSE(client::PacketFactory::Contains(static_cast<PacketFamily>(0), PacketAction::Player));
+
+    EXPECT_TRUE(server::PacketFactory::Contains(PacketFamily::Walk, PacketAction::Reply));
+    EXPECT_FALSE(server::PacketFactory::Contains(PacketFamily::Walk, PacketAction::Junk));
+}
+
+TEST(GeneratedProtocolTest, PacketFactoryContains_EveryId_MatchesCreate)
+{
+    for (int family = 0; family <= 0xFF; ++family)
+    {
+        for (int action = 0; action <= 0xFF; ++action)
+        {
+            const auto f = static_cast<PacketFamily>(family);
+            const auto a = static_cast<PacketAction>(action);
+            EXPECT_EQ(client::PacketFactory::Contains(f, a), client::PacketFactory::Create(f, a) != nullptr)
+                << "client family " << family << " action " << action;
+            EXPECT_EQ(server::PacketFactory::Contains(f, a), server::PacketFactory::Create(f, a) != nullptr)
+                << "server family " << family << " action " << action;
+        }
+    }
+}
+
 TEST(GeneratedProtocolTest, PacketFactoryDeserialize)
 {
     const auto expected = MakeWalkPacket();

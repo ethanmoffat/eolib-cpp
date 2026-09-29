@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `EOLIB_BUILD_DOCS` CMake option (off by default), which adds a `docs` target that builds the API reference.
 - `scripts/serve-docs.sh`, which builds the docs site for the working tree and serves it on localhost.
 - `scripts/install-deps.sh --docs` and `scripts/install-deps.ps1 -Docs` install Doxygen into `.tools/bin`.
+- `PacketFactory::Contains(family, action)` for client and server packets, which checks whether a packet exists for a family and action without creating it. It is generated from the protocol files, like `Create`.
 
 ### Fixed
 - Protocol comments containing `#`, `@` or `\` are escaped in the generated documentation comments, so Doxygen shows
