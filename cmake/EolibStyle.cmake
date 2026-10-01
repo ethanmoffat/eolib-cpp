@@ -72,8 +72,7 @@ if(EOLIB_CLANG_TIDY_EXECUTABLE)
         set(eolib_tidy_builtin_args "--extra-arg=-idirafter${eolib_compiler_builtin_dir}")
     endif()
 
-    file(GLOB_RECURSE eolib_tidy_sources CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/src/*.cpp"
-         "${PROJECT_SOURCE_DIR}/generator/src/*.cpp")
+    set(eolib_tidy_sources ${EOLIB_RUNTIME_SOURCES} ${EOLIB_GENERATOR_SOURCES} "${EOLIB_GENERATOR_MAIN_SOURCE}")
     add_custom_target(
         tidy
         COMMAND "${EOLIB_CLANG_TIDY_EXECUTABLE}" -p "${PROJECT_BINARY_DIR}" --quiet ${eolib_tidy_builtin_args}

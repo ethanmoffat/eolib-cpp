@@ -34,24 +34,21 @@ add_custom_command(
     VERBATIM)
 add_custom_target(eolib_generate_test_properties DEPENDS "${eolib_test_properties_stamp}")
 
-add_executable(
-    eolib_tests
-    data/eo_reader_test.cpp
-    data/eo_writer_test.cpp
-    data/number_encoder_test.cpp
-    data/string_encoder_test.cpp
-    encrypt/data_encrypter_test.cpp
-    encrypt/server_verifier_test.cpp
-    packet/packet_sequencer_test.cpp
-    packet/sequence_start_test.cpp
-    protocol/captured_packet_properties.cpp
-    protocol/captured_packets_test.cpp
-    protocol/generated_protocol_test.cpp
-    protocol/protocol_rules_test.cpp
-    protocol/pub_map_test.cpp
-    protocol/serializable_test.cpp
-    version_test.cpp
-    "${eolib_test_properties_source}")
+# Only the test directories are globbed, so the consumer smoke test and the submodules are left out.
+file(
+    GLOB_RECURSE
+    eolib_test_sources
+    CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/data/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/encrypt/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/packet/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/protocol/*.cpp")
+file(GLOB eolib_root_test_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+list(APPEND eolib_test_sources ${eolib_root_test_sources})
+file(GLOB eolib_windows_test_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/windows_*_test.cpp")
+list(REMOVE_ITEM eolib_test_sources ${eolib_windows_test_sources})
+
+add_executable(eolib_tests ${eolib_test_sources} "${eolib_test_properties_source}")
 add_dependencies(eolib_tests eolib_generate_test_properties)
 
 if(MSVC)
@@ -68,14 +65,15 @@ target_link_libraries(eolib_tests PRIVATE eolib::eolib GTest::gtest_main nlohman
 set_target_properties(eolib_tests PROPERTIES CXX_EXTENSIONS OFF)
 
 if(WIN32)
-    target_sources(eolib_tests PRIVATE windows_header_test.cpp)
+    target_sources(eolib_tests PRIVATE ${eolib_windows_test_sources})
 endif()
 
 gtest_discover_tests(eolib_tests)
 
 # The generator tests require the generator library, which is unavailable when a prebuilt or host generator is used.
 if(TARGET eolib_protocol_gen_lib)
-    add_executable(eolib_generator_tests generator/comment_test.cpp generator/names_test.cpp generator/validation_test.cpp)
+    file(GLOB eolib_generator_test_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/generator/*.cpp")
+    add_executable(eolib_generator_tests ${eolib_generator_test_sources})
     target_link_libraries(eolib_generator_tests PRIVATE eolib_protocol_gen_lib GTest::gtest_main eolib_compiler_options)
     set_target_properties(eolib_generator_tests PROPERTIES CXX_EXTENSIONS OFF)
     gtest_discover_tests(eolib_generator_tests)

@@ -2,18 +2,6 @@ include(GenerateExportHeader)
 
 include(EolibGenerate)
 
-set(EOLIB_RUNTIME_SOURCES
-    data/eo_reader.cpp
-    data/eo_writer.cpp
-    data/number_encoder.cpp
-    data/string_encoder.cpp
-    encrypt/data_encrypter.cpp
-    encrypt/server_verifier.cpp
-    packet/packet_sequencer.cpp
-    packet/sequence_start.cpp
-    protocol/serializable.cpp
-    version.cpp)
-
 add_library(eolib ${EOLIB_RUNTIME_SOURCES} ${EOLIB_GENERATED_SOURCES})
 add_dependencies(eolib eolib_generate_protocol)
 add_library(eolib::eolib ALIAS eolib)

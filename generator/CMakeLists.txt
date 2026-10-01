@@ -11,6 +11,7 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     endif()
     list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake")
     include(EolibCompilerOptions)
+    include(EolibSourceFiles)
     option(EOLIB_OFFLINE "Build without downloading dependencies (no internet connection)" OFF)
 endif()
 
@@ -28,31 +29,13 @@ if(NOT TARGET pugixml::pugixml)
     add_library(pugixml::pugixml ALIAS eolib_pugixml)
 endif()
 
-add_library(
-    eolib_protocol_gen_lib STATIC
-    src/code_writer.cpp
-    src/comment_rewriter.cpp
-    src/doc_comment.cpp
-    src/enum_generator.cpp
-    src/generated_file.cpp
-    src/model.cpp
-    src/names.cpp
-    src/object_generator.cpp
-    src/packet_factory_generator.cpp
-    src/packet_switch.cpp
-    src/property_generator.cpp
-    src/protocol_generator.cpp
-    src/protocol_reader.cpp
-    src/serialization_code.cpp
-    src/switch_generator.cpp
-    src/types.cpp
-    src/xml_node.cpp)
+add_library(eolib_protocol_gen_lib STATIC ${EOLIB_GENERATOR_SOURCES})
 target_include_directories(eolib_protocol_gen_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_features(eolib_protocol_gen_lib PUBLIC cxx_std_17)
 target_link_libraries(eolib_protocol_gen_lib PRIVATE pugixml::pugixml eolib_compiler_options)
 set_target_properties(eolib_protocol_gen_lib PROPERTIES CXX_EXTENSIONS OFF)
 
-add_executable(eolib-protocol-gen src/main.cpp)
+add_executable(eolib-protocol-gen "${EOLIB_GENERATOR_MAIN_SOURCE}")
 target_link_libraries(eolib-protocol-gen PRIVATE eolib_protocol_gen_lib eolib_compiler_options)
 set_target_properties(eolib-protocol-gen PROPERTIES CXX_EXTENSIONS OFF)
 

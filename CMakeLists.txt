@@ -39,6 +39,7 @@ if(EOLIB_IS_TOP_LEVEL)
 endif()
 
 include(EolibCompilerOptions)
+include(EolibSourceFiles)
 
 set(EOLIB_GENERATED_DIR "${PROJECT_BINARY_DIR}/generated")
 set(EOLIB_GENERATED_INCLUDE_DIR "${EOLIB_GENERATED_DIR}/include")
