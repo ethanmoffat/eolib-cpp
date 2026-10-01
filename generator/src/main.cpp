@@ -1,21 +1,17 @@
-#include "emitter.hpp"
 #include "errors.hpp"
-#include "model.hpp"
-#include "property_emitter.hpp"
+#include "generated_file.hpp"
+#include "property_generator.hpp"
+#include "protocol_generator.hpp"
+#include "protocol_reader.hpp"
 #include "types.hpp"
 
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <iterator>
-#include <sstream>
 #include <string>
 
 namespace fs = std::filesystem;
 using namespace eolib::generator;
-
-namespace
-{
 
 constexpr const char* USAGE =
     "Usage: eolib-protocol-gen --input <xml dir> --output <dir> [--stamp <file>] [--mode <mode>]\n"
@@ -28,39 +24,6 @@ constexpr const char* USAGE =
     "                    <dir>/src.\n"
     "  test-properties   test support code for the eolib tests, which builds packets from the properties in\n"
     "                    eo-captured-packets files. Written to <dir>/captured_packet_properties.cpp.\n";
-
-std::string ReadFile(const fs::path& path)
-{
-    std::ifstream stream(path, std::ios::binary);
-    if (!stream)
-    {
-        return {};
-    }
-    return std::string(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
-}
-
-bool WriteFileIfChanged(const fs::path& path, const std::string& content)
-{
-    if (fs::exists(path) && ReadFile(path) == content)
-    {
-        return false;
-    }
-
-    fs::create_directories(path.parent_path());
-    std::ofstream stream(path, std::ios::binary | std::ios::trunc);
-    if (!stream)
-    {
-        throw std::runtime_error("Failed to open " + path.string() + " for writing.");
-    }
-    stream << content;
-    if (!stream)
-    {
-        throw std::runtime_error("Failed to write " + path.string() + ".");
-    }
-    return true;
-}
-
-} // namespace
 
 int main(int argc, char* argv[])
 {
@@ -113,15 +76,15 @@ int main(int argc, char* argv[])
 
     try
     {
-        const auto files = LoadProtocolFiles(input);
+        const auto files = ProtocolReader::ReadAll(input);
         TypeRegistry types(files);
-        const auto outputs =
-            mode == "protocol" ? GenerateProtocol(files, types) : GenerateCapturedPacketProperties(files, types);
+        const auto outputs = mode == "protocol" ? ProtocolGenerator(files, types).Generate()
+                                                : PropertyGenerator(files, types).Generate();
 
         int written = 0;
         for (const auto& file : outputs)
         {
-            if (WriteFileIfChanged(output / file.path, file.content))
+            if (file.WriteIfChanged(output))
             {
                 ++written;
             }

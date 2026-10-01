@@ -28,11 +28,28 @@ if(NOT TARGET pugixml::pugixml)
     add_library(pugixml::pugixml ALIAS eolib_pugixml)
 endif()
 
-add_library(eolib_protocol_gen_lib STATIC src/doc_comment.cpp src/emitter.cpp src/model.cpp src/names.cpp
-                                                  src/property_emitter.cpp src/types.cpp)
+add_library(
+    eolib_protocol_gen_lib STATIC
+    src/code_writer.cpp
+    src/comment_rewriter.cpp
+    src/doc_comment.cpp
+    src/enum_generator.cpp
+    src/generated_file.cpp
+    src/model.cpp
+    src/names.cpp
+    src/object_generator.cpp
+    src/packet_factory_generator.cpp
+    src/packet_switch.cpp
+    src/property_generator.cpp
+    src/protocol_generator.cpp
+    src/protocol_reader.cpp
+    src/serialization_code.cpp
+    src/switch_generator.cpp
+    src/types.cpp
+    src/xml_node.cpp)
 target_include_directories(eolib_protocol_gen_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_features(eolib_protocol_gen_lib PUBLIC cxx_std_17)
-target_link_libraries(eolib_protocol_gen_lib PUBLIC pugixml::pugixml PRIVATE eolib_compiler_options)
+target_link_libraries(eolib_protocol_gen_lib PRIVATE pugixml::pugixml eolib_compiler_options)
 set_target_properties(eolib_protocol_gen_lib PROPERTIES CXX_EXTENSIONS OFF)
 
 add_executable(eolib-protocol-gen src/main.cpp)

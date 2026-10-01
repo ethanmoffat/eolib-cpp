@@ -9,89 +9,6 @@
 namespace eolib::generator
 {
 
-namespace
-{
-
-/// Gets the identifier of the public member generated for an instruction, or an empty string if it has none. A switch
-/// is represented by its data member.
-std::string InstructionMemberIdentifier(const Instruction& instruction)
-{
-    switch (instruction.kind)
-    {
-        case InstructionKind::Field:
-        case InstructionKind::Array:
-            return instruction.name ? MemberIdentifier(*instruction.name) : std::string();
-        case InstructionKind::Switch:
-            return MemberIdentifier(instruction.switch_field + "_data");
-        default:
-            return {};
-    }
-}
-
-/// Describes the position of an instruction relative to the nearest public member, e.g. "after `name`".
-std::string DescribeInstructionPosition(const std::vector<const Instruction*>& instructions, std::size_t index)
-{
-    for (std::size_t i = index; i > 0; --i)
-    {
-        const auto identifier = InstructionMemberIdentifier(*instructions[i - 1]);
-        if (!identifier.empty())
-        {
-            return "after `" + identifier + "`";
-        }
-    }
-
-    for (std::size_t i = index + 1; i < instructions.size(); ++i)
-    {
-        const auto identifier = InstructionMemberIdentifier(*instructions[i]);
-        if (!identifier.empty())
-        {
-            return "before `" + identifier + "`";
-        }
-    }
-
-    return {};
-}
-
-/// Describes an instruction that has no public member, e.g. "The dummy byte after `name` (always 255)".
-std::string DescribeInstruction(const std::vector<const Instruction*>& instructions, std::size_t index)
-{
-    const Instruction& instruction = *instructions[index];
-
-    std::string subject;
-    switch (instruction.kind)
-    {
-        case InstructionKind::Dummy:
-            subject = "The dummy " + instruction.type;
-            break;
-        case InstructionKind::Length:
-            return "The `" + *instruction.name + "` length field";
-        case InstructionKind::Break:
-            subject = "The break byte";
-            break;
-        case InstructionKind::Chunked:
-            subject = "The chunked section";
-            break;
-        default:
-            throw GeneratorError("Unhandled instruction kind for description");
-    }
-
-    const auto position = DescribeInstructionPosition(instructions, index);
-    if (!position.empty())
-    {
-        subject += " " + position;
-    }
-
-    if (instruction.kind == InstructionKind::Dummy)
-    {
-        const bool string = instruction.type == "string" || instruction.type == "encoded_string";
-        subject += " (always " + (string ? "\"" + *instruction.value + "\"" : *instruction.value) + ")";
-    }
-
-    return subject;
-}
-
-} // namespace
-
 void DocComment::AddParagraph(const std::optional<std::string>& text)
 {
     if (text)
@@ -107,8 +24,7 @@ void DocComment::AddNote(const std::string& note)
 
 void DocComment::AddInstructionNotes(const std::vector<Instruction>& instructions)
 {
-    std::vector<const Instruction*> flattened;
-    FlattenChunked(instructions, flattened);
+    const auto flattened = FlattenChunked(instructions);
 
     for (std::size_t i = 0; i < flattened.size(); ++i)
     {
@@ -218,6 +134,81 @@ std::string DocComment::Text() const
     }
 
     return result;
+}
+
+std::string DocComment::InstructionMemberIdentifier(const Instruction& instruction)
+{
+    switch (instruction.kind)
+    {
+        case InstructionKind::Field:
+        case InstructionKind::Array:
+            return instruction.name ? MemberIdentifier(*instruction.name) : std::string();
+        case InstructionKind::Switch:
+            return MemberIdentifier(SwitchDataName(instruction.switch_field));
+        default:
+            return {};
+    }
+}
+
+std::string DocComment::DescribeInstructionPosition(const std::vector<const Instruction*>& instructions,
+                                                    std::size_t index)
+{
+    for (std::size_t i = index; i > 0; --i)
+    {
+        const auto identifier = InstructionMemberIdentifier(*instructions[i - 1]);
+        if (!identifier.empty())
+        {
+            return "after `" + identifier + "`";
+        }
+    }
+
+    for (std::size_t i = index + 1; i < instructions.size(); ++i)
+    {
+        const auto identifier = InstructionMemberIdentifier(*instructions[i]);
+        if (!identifier.empty())
+        {
+            return "before `" + identifier + "`";
+        }
+    }
+
+    return {};
+}
+
+std::string DocComment::DescribeInstruction(const std::vector<const Instruction*>& instructions, std::size_t index)
+{
+    const Instruction& instruction = *instructions[index];
+
+    std::string subject;
+    switch (instruction.kind)
+    {
+        case InstructionKind::Dummy:
+            subject = "The dummy " + instruction.type;
+            break;
+        case InstructionKind::Length:
+            return "The `" + *instruction.name + "` length field";
+        case InstructionKind::Break:
+            subject = "The break byte";
+            break;
+        case InstructionKind::Chunked:
+            subject = "The chunked section";
+            break;
+        default:
+            throw GeneratorError("Unhandled instruction kind for description");
+    }
+
+    const auto position = DescribeInstructionPosition(instructions, index);
+    if (!position.empty())
+    {
+        subject += " " + position;
+    }
+
+    if (instruction.kind == InstructionKind::Dummy)
+    {
+        const bool string = instruction.type == "string" || instruction.type == "encoded_string";
+        subject += " (always " + (string ? "\"" + *instruction.value + "\"" : *instruction.value) + ")";
+    }
+
+    return subject;
 }
 
 } // namespace eolib::generator

@@ -6,6 +6,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace eolib::generator
 {
@@ -55,9 +56,6 @@ struct Type
 /// Maximum value representable by an integer type.
 long long MaxValueOf(const Type& integer_type);
 
-/// Returns true if the value is a (possibly negative) decimal integer literal.
-bool IsInteger(const std::string& value);
-
 /// A registry of all types defined across the protocol files. Mirrors eolib-java's TypeFactory.
 class TypeRegistry
 {
@@ -67,6 +65,10 @@ public:
     /// Resolves a type reference, e.g. "short", "bool:short", "Direction", or "string" with a length.
     /// @throws GeneratorError if the type is invalid.
     const Type& Get(const std::string& name, const std::optional<std::string>& length = std::nullopt);
+
+    /// Gets the custom types referenced by fields, arrays and length fields in the instructions, including those in
+    /// chunked sections and switch cases, in order of appearance.
+    std::vector<const Type*> ReferencedTypes(const std::vector<Instruction>& instructions);
 
 private:
     struct Definition

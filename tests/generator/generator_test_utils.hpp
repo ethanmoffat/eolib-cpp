@@ -1,8 +1,9 @@
 #pragma once
 
-#include "emitter.hpp"
 #include "errors.hpp"
 #include "model.hpp"
+#include "protocol_generator.hpp"
+#include "protocol_reader.hpp"
 #include "types.hpp"
 
 #include <gtest/gtest.h>
@@ -57,9 +58,9 @@ public:
 
     std::vector<OutputFile> Generate() const
     {
-        const auto files = LoadProtocolFiles(dir_);
+        const auto files = ProtocolReader::ReadAll(dir_);
         TypeRegistry types(files);
-        return GenerateProtocol(files, types);
+        return ProtocolGenerator(files, types).Generate();
     }
 
 private:

@@ -1,13 +1,66 @@
 #include "names.hpp"
 
+#include "model.hpp"
+#include "types.hpp"
+
+#include <algorithm>
 #include <array>
 #include <cctype>
 #include <cstdio>
+#include <iterator>
 #include <set>
 #include <string_view>
 
 namespace eolib::generator
 {
+
+std::string Trim(const std::string& str)
+{
+    const auto begin = std::find_if_not(str.begin(), str.end(), [](unsigned char c) { return std::isspace(c); });
+    const auto end = std::find_if_not(str.rbegin(), str.rend(), [](unsigned char c) { return std::isspace(c); });
+    if (begin >= end.base())
+    {
+        return {};
+    }
+    return std::string(begin, end.base());
+}
+
+std::string Join(const std::vector<std::string>& parts, const std::string& separator)
+{
+    std::string result;
+    for (std::size_t i = 0; i < parts.size(); ++i)
+    {
+        if (i > 0)
+        {
+            result += separator;
+        }
+        result += parts[i];
+    }
+    return result;
+}
+
+bool IsInteger(const std::string& value)
+{
+    if (value.empty())
+    {
+        return false;
+    }
+
+    std::size_t start = value[0] == '-' ? 1 : 0;
+    if (start == value.size())
+    {
+        return false;
+    }
+
+    for (std::size_t i = start; i < value.size(); ++i)
+    {
+        if (value[i] < '0' || value[i] > '9')
+        {
+            return false;
+        }
+    }
+    return true;
+}
 
 std::string SnakeCaseToPascalCase(const std::string& name)
 {
@@ -138,6 +191,67 @@ std::string DocText(const std::string& text)
         result += c;
     }
     return result;
+}
+
+std::string CppTypeName(const Type& type, const ProtocolFile* from)
+{
+    switch (type.kind)
+    {
+        case TypeKind::Integer:
+            return "int";
+        case TypeKind::Bool:
+            return "bool";
+        case TypeKind::String:
+            return "std::string";
+        case TypeKind::Blob:
+            return "std::vector<std::uint8_t>";
+        case TypeKind::Enum:
+        case TypeKind::Struct:
+            break;
+    }
+
+    if (from == nullptr)
+    {
+        return type.file->Namespace() + "::" + type.name;
+    }
+    if (type.file == from)
+    {
+        return type.name;
+    }
+    if (type.file->namespace_parts.empty())
+    {
+        return "protocol::" + type.name;
+    }
+    return Join(type.file->namespace_parts, "::") + "::" + type.name;
+}
+
+std::string PacketClassName(const ProtocolFile& file, const ProtocolPacket& packet)
+{
+    return packet.family + packet.action + (file.PacketSide() == "client" ? "ClientPacket" : "ServerPacket");
+}
+
+std::string DefaultConstantName(const std::string& field_name)
+{
+    std::string result = "DEFAULT_";
+    std::transform(field_name.begin(), field_name.end(), std::back_inserter(result),
+                   [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+    return result;
+}
+
+std::string SwitchDataName(const std::string& switch_field)
+{
+    return switch_field + "_data";
+}
+
+std::string SwitchDataTypeName(const std::string& switch_field)
+{
+    return SnakeCaseToPascalCase(switch_field) + "Data";
+}
+
+std::string SwitchCaseTypeName(const std::string& switch_field, const ProtocolCase& protocol_case)
+{
+    return SwitchDataTypeName(switch_field) +
+           (protocol_case.is_default ? std::string("Default") : *protocol_case.value);
 }
 
 } // namespace eolib::generator

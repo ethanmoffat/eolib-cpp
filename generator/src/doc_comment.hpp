@@ -3,6 +3,7 @@
 #include "model.hpp"
 #include "types.hpp"
 
+#include <cstddef>
 #include <optional>
 #include <string>
 #include <vector>
@@ -46,6 +47,17 @@ public:
 private:
     std::vector<std::string> paragraphs_;
     std::vector<std::string> notes_;
+
+    /// Gets the identifier of the public member generated for an instruction, or an empty string if it has none. A
+    /// switch is represented by its data member.
+    static std::string InstructionMemberIdentifier(const Instruction& instruction);
+
+    /// Describes the position of an instruction relative to the nearest public member, e.g. "after `name`".
+    static std::string DescribeInstructionPosition(const std::vector<const Instruction*>& instructions,
+                                                   std::size_t index);
+
+    /// Describes an instruction that has no public member, e.g. "The dummy byte after `name` (always 255)".
+    static std::string DescribeInstruction(const std::vector<const Instruction*>& instructions, std::size_t index);
 };
 
 } // namespace eolib::generator

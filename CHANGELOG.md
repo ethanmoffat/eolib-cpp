@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Named hardcoded fields are now ordinary data members instead of `static constexpr` constants. They are deserialized, compared and included in `ToString()`, and serialize their value, so deserialized values round-trip exactly and set values are sent. A zero value is serialized as the default value, unless the object was deserialized.
 - Protocol comments that are wrapped across several lines in the XML are joined into one line in the generated documentation comments.
+- Reorganized the `eolib-protocol-gen` source into one header and source file per class. The generated code is unchanged.
 
 ### Updated
 - Pulled in changes for eo-protocol, with impact to generated code:

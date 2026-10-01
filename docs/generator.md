@@ -14,10 +14,10 @@ eolib-protocol-gen --input <xml dir> --output <dir> [--stamp <file>] [--mode pro
 
 `main.cpp` runs the same steps for every build:
 
-1. Load every `protocol.xml` file under the input directory into an in-memory model (`LoadProtocolFiles`).
+1. Load every `protocol.xml` file under the input directory into an in-memory model (`ProtocolReader::ReadAll`).
 2. Build a registry of every type defined across all of the files (`TypeRegistry`).
-3. Generate the output files. In `protocol` mode (the default) this is the library code, from `GenerateProtocol`. In `test-properties` mode it's a single test support file, from `GenerateCapturedPacketProperties`.
-4. Write each output file, but only if its content changed, then touch the stamp file.
+3. Generate the output files. In `protocol` mode (the default) this is the library code, from `ProtocolGenerator`. In `test-properties` mode it's a single test support file, from `PropertyGenerator`.
+4. Write each output file with `OutputFile::WriteIfChanged`, so files are only written if their content changed, then touch the stamp file.
 
 Each step only uses the steps before it. The model doesn't know about types, and neither the model nor the types know anything about C++ code.
 
@@ -27,21 +27,35 @@ Any problem with the protocol files, such as an unknown type, a misplaced elemen
 
 All of the generator's code is in `generator/src`, in the `eolib::generator` namespace. The sources are built into a static library (`eolib_protocol_gen_lib`) and the `eolib-protocol-gen` executable, so the generator tests can link the library and call the generator functions directly.
 
+Each major class has its own header and source file, named after the class. Small structs that are only used with a class are defined in the same header.
+
 | File | Contents |
 |---|---|
 | `main.cpp` | Command-line parsing and the steps above |
-| `model.hpp/.cpp` | The protocol model and the XML loading code |
+| `model.hpp/.cpp` | The protocol model, and `FlattenChunked`/`FlattenAll` for walking nested instructions |
+| `protocol_reader.hpp/.cpp` | `ProtocolReader`, which reads the XML files into the model |
+| `comment_rewriter.hpp/.cpp` | `CommentRewriter`, which turns XML comments into `<comment>` elements before the files are read |
+| `xml_node.hpp/.cpp` | `XmlNode`, helpers for reading pugixml nodes and attributes |
 | `types.hpp/.cpp` | `Type` and `TypeRegistry` |
-| `emitter.hpp/.cpp` | Generates the library code |
-| `property_emitter.hpp/.cpp` | Generates the captured packet test support code |
+| `protocol_generator.hpp/.cpp` | `ProtocolGenerator`, which generates the library code, and `FileLayout` |
+| `enum_generator.hpp/.cpp` | `EnumGenerator`, which generates the enums of a file |
+| `packet_factory_generator.hpp/.cpp` | `PacketFactoryGenerator`, which generates the `PacketFactory` of a file |
+| `object_generator.hpp/.cpp` | `ObjectGenerator`, which generates one struct, packet or switch case class, and the `Context` and `ObjectCode` structs it works with |
+| `switch_generator.hpp/.cpp` | `SwitchGenerator`, which generates a switch within a class |
+| `serialization_code.hpp/.cpp` | `SerializationCode`, which builds the code that reads and writes a value |
 | `doc_comment.hpp/.cpp` | `DocComment`, which builds the text of generated documentation comments |
-| `code_writer.hpp` | `CodeWriter`, which builds up generated code line by line |
-| `names.hpp/.cpp` | Naming and escaping helpers |
+| `property_generator.hpp/.cpp` | `PropertyGenerator`, which generates the captured packet test support code |
+| `packet_switch.hpp/.cpp` | `PacketSwitch`, which writes a `switch` over packet families and actions. Used by `PacketFactoryGenerator` and `PropertyGenerator` |
+| `generated_file.hpp/.cpp` | `GeneratedFile`, a `CodeWriter` that starts with the generated file banner, and `OutputFile` |
+| `code_writer.hpp/.cpp` | `CodeWriter`, which builds up generated code line by line |
+| `names.hpp/.cpp` | Naming and escaping helpers, including the C++ names of types, packets and switch members |
 | `errors.hpp` | `GeneratorError` |
+
+pugixml is only used by `protocol_reader.cpp`, `comment_rewriter.cpp` and `xml_node.cpp`. The headers forward-declare the pugixml types they need, so nothing else depends on pugixml.
 
 ## Model
 
-`model.hpp` defines plain structs that mirror the XML. There's no behavior in them beyond two helpers on `ProtocolFile` for its namespace and include path.
+`model.hpp` defines plain structs that mirror the XML. There's no behavior in them beyond a few helpers on `ProtocolFile` for its namespace, include paths and packet side (client or server).
 
 ```
 ProtocolFile
@@ -56,13 +70,13 @@ Instruction (kind = Field, Array, Length, Dummy, Switch, Chunked or Break)
 
 The XML elements that can appear inside a struct, packet or case are all represented by a single `Instruction` struct. Its `kind` says which element it came from, and only the members that apply to that element are filled in. For example, `offset` is only used for `<length>`, and `cases` is only used for `<switch>`. This keeps the model a direct copy of the XML, and code that handles instructions switches on `kind` instead of using a class hierarchy.
 
-`model.cpp` reads the XML with pugixml. Before reading the elements, it runs a pre-pass that turns XML comments (`<!-- ... -->`) into `<comment>` elements, so they can be read the same way as comments that were written as elements. An XML comment documents the element after it, or its parent element if nothing follows it. This is the same rule used by eolib-dotnet and eolib-go.
+`ProtocolReader` reads the XML with pugixml. Before reading the elements, `CommentRewriter` runs a pre-pass that turns XML comments (`<!-- ... -->`) into `<comment>` elements, so they can be read the same way as comments that were written as elements. An XML comment documents the element after it, or its parent element if nothing follows it. This is the same rule used by eolib-dotnet and eolib-go.
 
 Files are loaded in sorted order so that the generated output is the same on every machine.
 
 ## Types
 
-The model only has type names as strings, such as `"short"`, `"Coords"` or `"bool:short"`. `TypeRegistry` turns those names into `Type` objects with everything the emitters need to know:
+The model only has type names as strings, such as `"short"`, `"Coords"` or `"bool:short"`. `TypeRegistry` turns those names into `Type` objects with everything the generators need to know:
 
 - The kind of type: integer, bool, string, blob, enum or struct.
 - The fixed size in bytes, if the type always has the same size.
@@ -70,24 +84,26 @@ The model only has type names as strings, such as `"short"`, `"Coords"` or `"boo
 - The underlying type, for enums and for references like `bool:short`. `SerializationType()` returns the type that's actually read and written.
 - Pointers back to the model definition and the file that defines it, for enums and structs.
 
-The registry is built in two stages. The constructor indexes the name of every enum and struct in every file, so a type can be used in a different file from the one that defines it. `Type` objects are then created the first time they're requested by `Get` and kept for the rest of the run, so the emitters can hold on to `Type` pointers. Calculating the size of a struct means getting the types of its fields, so the registry tracks which structs are in progress and reports an error if a struct contains itself.
+The registry is built in two stages. The constructor indexes the name of every enum and struct in every file, so a type can be used in a different file from the one that defines it. `Type` objects are then created the first time they're requested by `Get` and kept for the rest of the run, so the generators can hold on to `Type` pointers. Calculating the size of a struct means getting the types of its fields, so the registry tracks which structs are in progress and reports an error if a struct contains itself.
 
-## Library code (`emitter.cpp`)
+## Library code
 
-`emitter.cpp` has two classes. `ProtocolGenerator` produces the output files, and `ObjectGenerator` produces the code for one class within a file.
+`ProtocolGenerator` produces the output files. It hands each class to an `ObjectGenerator`, which produces the code for that one class within a file.
 
 ### ProtocolGenerator
 
-`GenerateProtocol` creates a `ProtocolGenerator` and calls `Generate()`, which goes through the protocol files one at a time and generates:
+`ProtocolGenerator::Generate` goes through the protocol files one at a time and generates:
 
-1. `enums.hpp/.cpp`, with `GenerateEnums`. Enums are simple enough that this function writes them directly.
+1. `enums.hpp/.cpp`, with `EnumGenerator`. Enums are simple enough that this class writes them directly.
 2. `structs.hpp/.cpp`, with `GenerateStructs`.
-3. `packets.hpp/.cpp`, with `GeneratePackets`, and `packet_factory.hpp/.cpp`, with `GeneratePacketFactory`.
+3. `packets.hpp/.cpp`, with `GeneratePackets`, and `packet_factory.hpp/.cpp`, with `PacketFactoryGenerator`.
 4. The umbrella headers, with `GenerateUmbrella` and `GenerateRootUmbrella`.
 
-`FileLayout` (in `emitter.hpp`) decides which of these files exist for a protocol file. The CMake build makes the same decision when it configures the project, so the two need to stay in sync.
+`FileLayout` (in `protocol_generator.hpp`) decides which of these files exist for a protocol file. The CMake build makes the same decision when it configures the project, so the two need to stay in sync.
 
-`GenerateStructs` and `GeneratePackets` work the same way. They write the start of the header and source files (banner, includes and namespace), then create an `ObjectGenerator` for each struct or packet and add its code to both files. The includes are worked out from the types each object uses. Structs are sorted so that a struct is declared before any struct in the same file that uses it, since C++ requires a complete type for a member.
+`GenerateStructs` and `GeneratePackets` only differ in the classes and includes they pass to `GenerateObjectFiles`. That function writes the start of the header and source files (banner, includes and namespace), then creates an `ObjectGenerator` for each struct or packet and adds its code to both files. The includes are worked out from the types each object uses, with `TypeRegistry::ReferencedTypes`. Structs are sorted so that a struct is declared before any struct in the same file that uses it, since C++ requires a complete type for a member.
+
+Every generated file is written with a `GeneratedFile`, which starts the file with the banner (and `#pragma once` for headers) and has helpers for the includes and the namespace.
 
 ### ObjectGenerator
 
@@ -101,18 +117,17 @@ generator.Finish(protocol_struct->comment, std::nullopt, header, source);
 
 `GenerateInstructions` goes through the instructions once, in order. For each one, `GenerateInstruction` checks the rules about what can follow what, then calls a function for the instruction's kind: `GenerateField`, `GenerateArray`, `GenerateLength`, `GenerateDummy`, `GenerateSwitch`, `GenerateChunked` or `GenerateBreak`.
 
-Each instruction adds to several parts of the class at the same time, so the generator keeps a separate `CodeWriter` or list for each part:
+Each instruction adds to several parts of the class at the same time, so the generator keeps a separate `CodeWriter` or list for each part. These are grouped in an `ObjectCode` struct, so `SwitchGenerator` can add to them too:
 
 | Member | Holds |
 |---|---|
-| `members_` | Field declarations, constants and nested case classes |
-| `serialize_` | The body of `Serialize` |
-| `deserialize_` | The body of `Deserialize` |
-| `equals_` | The fields compared by `operator==` |
-| `to_string_` | The fields printed by `ToString` |
-| `nested_definitions_` | The `.cpp` code for nested case classes |
+| `members` | Field declarations, constants and nested case classes |
+| `nested_definitions` | The `.cpp` code for nested case classes |
+| `serialize` | The body of `Serialize` |
+| `deserialize` | The body of `Deserialize` |
+| `value_members` | The members compared by `operator==` and printed by `ToString` |
 
-Most of the `Generate*` functions follow the same steps. They validate the instruction, declare the member (if there is one) along with its documentation, and then add the serialize and deserialize code. Lower-level helpers are shared between them: `WriteMethod` and `ReadMethod` choose the `EoWriter` or `EoReader` function for a type, and `WriteStatement` and `ReadExpression` build the code that calls them.
+Most of the `Generate*` functions follow the same steps. They validate the instruction, declare the member (if there is one) along with its documentation, and then add the serialize and deserialize code. The code that reads and writes a value comes from `SerializationCode`: `WriteStatement` and `ReadExpression` choose the `EoWriter` or `EoReader` function for a type and build the code that calls it.
 
 `Context` holds what the generator needs to remember while it works through the instructions:
 
@@ -120,12 +135,13 @@ Most of the `Generate*` functions follow the same steps. They validate the instr
 - Whether an optional field, a dummy, or an array without a length has been reached, since each of these limits what can come after it.
 - The fields declared so far (`accessible_fields`), so a `<switch>` can look up the field it switches on.
 - Which `<length>` fields have been declared, and which field uses each one.
+- The identifiers of all members of the class, so generated local variables don't conflict with them.
 
 Finally, `Finish` checks that every length field was used by another field, then writes the class. The declaration and documentation go to the header writer, and the `Serialize`, `Deserialize`, `operator==` and `ToString` definitions go to the source writer.
 
 ### Switches
 
-Switches are where `ObjectGenerator` calls itself. `GenerateSwitch` handles each case:
+`ObjectGenerator::GenerateSwitch` hands a switch to a `SwitchGenerator`, along with the class's `Context` and `ObjectCode`. This is where `ObjectGenerator` ends up calling itself. `SwitchGenerator` handles each case:
 
 - A case with no instructions only adds `case` labels to the serialize and deserialize code.
 - A case with instructions gets a new `ObjectGenerator` for a nested class (for example `ReplyCodeDataOk`). The new generator starts with a copy of the parent's `Context` flags and generates its own instructions. Its `Finish` output is added to the parent's members, and its flags are merged back into the parent's `Context` afterwards.
@@ -138,11 +154,13 @@ Documentation comments are built with `DocComment` (in `doc_comment.cpp`). It co
 
 `DocComment` passes all text through `DocText` when it's added, which escapes characters that Doxygen would otherwise treat as commands.
 
-## Test support code (`property_emitter.cpp`)
+## Test support code
 
 The captured packet tests compare every field of a deserialized packet to the values recorded in eo-captured-packets, and they also need to build packets from those values. Writing that code by hand for hundreds of packets isn't practical, so it's generated too.
 
 `PropertyGenerator` walks the same model as `ObjectGenerator`, but it's a separate, much smaller class. For each packet, and each struct used by a packet, it generates a `FromProperties<T>` function that creates the object and sets its fields from the JSON properties. The output is a single file, `captured_packet_properties.cpp`, which is only compiled into the tests.
+
+`PacketFactoryGenerator` and `PropertyGenerator` both need a `switch` over the packet family and action, so they share `PacketSwitch` to write it. Each one passes a callback that writes the `case` labels and statements for the packets of a family.
 
 ## Making changes
 
@@ -158,4 +176,4 @@ diff -r /tmp/generated-before build/release/generated
 
 Every change to the generator should come with tests in `tests/generator`. `generator_test_utils.hpp` has a `Generate` helper that runs the generator on an XML snippet and returns the generated files, so most tests are a few lines of XML and a check on the output. Changes that affect behavior should also have a test in `tests/protocol/generated_protocol_test.cpp`, which runs the real generated code.
 
-> ⚠️ If a change adds or removes a kind of generated file, update `FileLayout` in `emitter.hpp` and the matching logic in `cmake/EolibGenerate.cmake`. Otherwise the build won't know about the new files.
+> ⚠️ If a change adds or removes a kind of generated file, update `FileLayout` in `protocol_generator.hpp` and the matching logic in `cmake/EolibGenerate.cmake`. Otherwise the build won't know about the new files.

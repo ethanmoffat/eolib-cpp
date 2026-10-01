@@ -1,36 +1,13 @@
 #include "types.hpp"
 
 #include "errors.hpp"
+#include "names.hpp"
 
 #include <set>
 #include <vector>
 
 namespace eolib::generator
 {
-
-namespace
-{
-
-void FlattenInstructions(const std::vector<Instruction>& instructions, std::vector<const Instruction*>& result)
-{
-    for (const auto& instruction : instructions)
-    {
-        result.push_back(&instruction);
-        if (instruction.kind == InstructionKind::Chunked)
-        {
-            FlattenInstructions(instruction.instructions, result);
-        }
-        else if (instruction.kind == InstructionKind::Switch)
-        {
-            for (const auto& protocol_case : instruction.cases)
-            {
-                FlattenInstructions(protocol_case.instructions, result);
-            }
-        }
-    }
-}
-
-} // namespace
 
 long long MaxValueOf(const Type& integer_type)
 {
@@ -45,29 +22,6 @@ long long MaxValueOf(const Type& integer_type)
         result *= 253;
     }
     return result - 1;
-}
-
-bool IsInteger(const std::string& value)
-{
-    if (value.empty())
-    {
-        return false;
-    }
-
-    std::size_t start = value[0] == '-' ? 1 : 0;
-    if (start == value.size())
-    {
-        return false;
-    }
-
-    for (std::size_t i = start; i < value.size(); ++i)
-    {
-        if (value[i] < '0' || value[i] > '9')
-        {
-            return false;
-        }
-    }
-    return true;
 }
 
 TypeRegistry::TypeRegistry(const std::vector<ProtocolFile>& files)
@@ -131,6 +85,28 @@ const Type& TypeRegistry::Get(const std::string& name, const std::optional<std::
         it = types_.emplace(name, std::move(type)).first;
     }
     return *it->second;
+}
+
+std::vector<const Type*> TypeRegistry::ReferencedTypes(const std::vector<Instruction>& instructions)
+{
+    std::vector<const Type*> result;
+    for (const auto* instruction : FlattenAll(instructions))
+    {
+        if (instruction->kind != InstructionKind::Field && instruction->kind != InstructionKind::Array &&
+            instruction->kind != InstructionKind::Length)
+        {
+            continue;
+        }
+
+        const auto length =
+            instruction->kind == InstructionKind::Field ? instruction->length : std::optional<std::string>{};
+        const Type& type = Get(instruction->type, length);
+        if (type.IsCustom())
+        {
+            result.push_back(&type);
+        }
+    }
+    return result;
 }
 
 const Type* TypeRegistry::ReadUnderlyingType(const std::string& name)
@@ -336,11 +312,8 @@ std::optional<int> TypeRegistry::CalculateFixedStructSize(const ProtocolStruct& 
 
 bool TypeRegistry::IsBounded(const ProtocolStruct& protocol_struct)
 {
-    std::vector<const Instruction*> instructions;
-    FlattenInstructions(protocol_struct.instructions, instructions);
-
     bool result = true;
-    for (const auto* instruction : instructions)
+    for (const auto* instruction : FlattenAll(protocol_struct.instructions))
     {
         if (!result)
         {

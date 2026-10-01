@@ -107,16 +107,19 @@ struct ProtocolFile
     std::string Namespace() const;
     /// Include path prefix for generated files, e.g. "eolib/protocol/net/client".
     std::string IncludeDir() const;
+    /// Path of a generated file, relative to the include or source directory, e.g. "eolib/protocol/net/enums.hpp".
+    std::string IncludePath(const std::string& file_name) const;
+    /// Gets the side that the packets in this file are sent from: "client" or "server".
+    /// @throws GeneratorError if this is not a client or server protocol file.
+    std::string PacketSide() const;
 };
 
-/// Appends pointers to the specified instructions to result, with the contents of chunked sections following each
-/// chunked instruction.
-void FlattenChunked(const std::vector<Instruction>& instructions, std::vector<const Instruction*>& result);
+/// Gets pointers to the specified instructions, with the contents of each chunked section following the chunked
+/// instruction.
+std::vector<const Instruction*> FlattenChunked(const std::vector<Instruction>& instructions);
 
-/// Loads all protocol.xml files found (recursively) under the specified root directory, sorted by relative path.
-std::vector<ProtocolFile> LoadProtocolFiles(const std::filesystem::path& xml_root);
-
-/// Loads a single protocol.xml file.
-ProtocolFile LoadProtocolFile(const std::filesystem::path& path, const std::string& relative_dir);
+/// Gets pointers to the specified instructions, with the contents of each chunked section following the chunked
+/// instruction, and the contents of each switch case following the switch instruction.
+std::vector<const Instruction*> FlattenAll(const std::vector<Instruction>& instructions);
 
 } // namespace eolib::generator
