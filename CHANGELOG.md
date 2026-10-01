@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Developer documentation for contributors: `docs/architecture.md` describes how the library is organized and how its parts work together, and `docs/generator.md` describes how `eolib-protocol-gen` generates the protocol code.
+
 ## [0.1.0-beta.3] - 2026-09-29
 
 ### Added

@@ -228,6 +228,8 @@ To release a new version:
 
 - [API reference](https://ethanmoffat.github.io/eolib-cpp/), for each release
 - [Getting started](docs/getting-started.md)
+- [Architecture](docs/architecture.md): how the library is organized and how the parts work together
+- [Code generator](docs/generator.md): how `eolib-protocol-gen` turns the protocol XML into C++
 
 ## License
 
