@@ -580,13 +580,77 @@ TEST(GeneratorValidationTest, UnnamedHardcodedFieldHasNoMember)
     EXPECT_NE(source->content.find("writer.AddString(\"ABC\");"), std::string::npos);
 }
 
-TEST(GeneratorValidationTest, NamedHardcodedFieldIsConstant)
+TEST(GeneratorValidationTest, NamedHardcodedFieldDeclaresDefaultConstantAndField)
 {
     const auto outputs = Generate(R"(<struct name="S"><field name="tag" type="string">ABC</field></struct>)");
     const auto* header = FindOutput(outputs, "include/eolib/protocol/structs.hpp");
     ASSERT_NE(header, nullptr);
-    EXPECT_NE(header->content.find("static constexpr std::string_view tag = \"ABC\";"), std::string::npos);
-    EXPECT_EQ(header->content.find("std::string tag{};"), std::string::npos);
+    EXPECT_NE(header->content.find("    /// The default value of the `tag` field.\n"
+                                   "    static constexpr std::string_view DEFAULT_TAG = \"ABC\";\n"),
+              std::string::npos);
+    EXPECT_NE(header->content.find("    /// A zero value is serialized as `DEFAULT_TAG` unless this object was "
+                                   "deserialized.\n"
+                                   "    std::string tag{};\n"),
+              std::string::npos);
+}
+
+TEST(GeneratorValidationTest, NamedHardcodedFieldCommentDocumentsConstantAndField)
+{
+    const auto outputs = Generate(
+        R"(<struct name="S"><field name="version" type="char">112<comment>Verified.</comment></field></struct>)");
+    const auto* header = FindOutput(outputs, "include/eolib/protocol/structs.hpp");
+    ASSERT_NE(header, nullptr);
+    EXPECT_NE(header->content.find("    /// Verified.\n"
+                                   "    static constexpr int DEFAULT_VERSION = 112;\n"),
+              std::string::npos);
+    EXPECT_NE(header->content.find("    /// Verified.\n"
+                                   "    ///\n"
+                                   "    /// A zero value is serialized as `DEFAULT_VERSION` unless this object was "
+                                   "deserialized.\n"),
+              std::string::npos);
+}
+
+TEST(GeneratorValidationTest, NamedHardcodedFieldSerializesDefaultForZeroValueInNewObject)
+{
+    const auto outputs = Generate(R"(<struct name="S">
+        <field name="version" type="char">112</field>
+        <field name="tag" type="string">ABC</field>
+        <field name="flag" type="bool">true</field>
+    </struct>)");
+    const auto* source = FindOutput(outputs, "src/eolib/protocol/structs.cpp");
+    ASSERT_NE(source, nullptr);
+    EXPECT_NE(source->content.find("writer.AddChar((version == 0 && byte_size_ == 0 ? DEFAULT_VERSION : version));"),
+              std::string::npos);
+    EXPECT_NE(source->content.find("writer.AddString((tag.empty() && byte_size_ == 0 ? DEFAULT_TAG : "
+                                   "std::string_view(tag)));"),
+              std::string::npos);
+    EXPECT_NE(source->content.find("writer.AddChar((!flag && byte_size_ == 0 ? DEFAULT_FLAG : flag) ? 1 : 0);"),
+              std::string::npos);
+    EXPECT_NE(source->content.find("version = reader.GetChar();"), std::string::npos);
+    EXPECT_NE(source->content.find("tag = reader.GetString();"), std::string::npos);
+}
+
+TEST(GeneratorValidationTest, NamedHardcodedFieldWithZeroDefaultSerializesField)
+{
+    const auto outputs = Generate(R"(<struct name="S"><field name="version" type="char">0</field></struct>)");
+    const auto* header = FindOutput(outputs, "include/eolib/protocol/structs.hpp");
+    const auto* source = FindOutput(outputs, "src/eolib/protocol/structs.cpp");
+    ASSERT_NE(header, nullptr);
+    ASSERT_NE(source, nullptr);
+    EXPECT_NE(header->content.find("static constexpr int DEFAULT_VERSION = 0;"), std::string::npos);
+    EXPECT_EQ(header->content.find("A zero value is serialized"), std::string::npos);
+    EXPECT_NE(source->content.find("writer.AddChar(version);"), std::string::npos);
+}
+
+TEST(GeneratorValidationTest, NamedHardcodedFixedStringChecksSerializedLength)
+{
+    const auto outputs =
+        Generate(R"(<struct name="S"><field name="tag" type="string" length="3">ABC</field></struct>)");
+    const auto* source = FindOutput(outputs, "src/eolib/protocol/structs.cpp");
+    ASSERT_NE(source, nullptr);
+    EXPECT_NE(source->content.find("if ((tag.empty() && byte_size_ == 0 ? DEFAULT_TAG : std::string_view(tag)).size() "
+                                   "!= 3)"),
+              std::string::npos);
 }
 
 namespace

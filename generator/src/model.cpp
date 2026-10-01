@@ -25,6 +25,120 @@ std::string Trim(const std::string& str)
     return std::string(begin, end.base());
 }
 
+/// Trims each line of a comment and joins the non-empty lines with a space. Comment lines are wrapped prose, so a
+/// sentence spanning multiple lines is kept together.
+std::string NormalizeComment(const std::string& comment)
+{
+    std::istringstream stream(comment);
+    std::string result;
+    std::string line;
+    while (std::getline(stream, line))
+    {
+        line = Trim(line);
+        if (line.empty())
+        {
+            continue;
+        }
+        if (!result.empty())
+        {
+            result += ' ';
+        }
+        result += line;
+    }
+    return result;
+}
+
+std::string ElementText(const pugi::xml_node& node)
+{
+    std::string text;
+    for (const auto& child : node.children())
+    {
+        if (child.type() == pugi::node_pcdata || child.type() == pugi::node_cdata)
+        {
+            text += child.value();
+        }
+    }
+    return text;
+}
+
+void SetElementText(pugi::xml_node node, const std::string& text)
+{
+    while (node.first_child())
+    {
+        node.remove_child(node.first_child());
+    }
+    node.append_child(pugi::node_pcdata).set_value(text.c_str());
+}
+
+void AppendComments(pugi::xml_node element, const std::vector<std::string>& comments)
+{
+    std::vector<std::string> normalized;
+    for (const auto& comment : comments)
+    {
+        auto text = NormalizeComment(comment);
+        if (!text.empty())
+        {
+            normalized.push_back(std::move(text));
+        }
+    }
+
+    if (normalized.empty())
+    {
+        return;
+    }
+
+    auto comment_element = element.child("comment");
+    if (!comment_element)
+    {
+        comment_element = element.prepend_child("comment");
+    }
+    else if (auto existing = ElementText(comment_element); !existing.empty())
+    {
+        normalized.insert(normalized.begin(), std::move(existing));
+    }
+
+    std::string text;
+    for (const auto& comment : normalized)
+    {
+        text += (text.empty() ? "" : "\n") + comment;
+    }
+    SetElementText(comment_element, text);
+}
+
+/// Removes XML comments from the children of the specified element (recursively) and attaches them as <comment>
+/// elements. A comment attaches to the next sibling element. A comment with no following sibling element attaches to
+/// its parent. Existing <comment> text is kept first, followed by trailing comments, then preceding comments. Existing
+/// <comment> text is normalized the same way as XML comments.
+void RewriteCommentsAsElementsInPlace(pugi::xml_node element)
+{
+    std::vector<std::string> pending_comments;
+    for (auto child = element.first_child(); child;)
+    {
+        const auto next = child.next_sibling();
+        if (child.type() == pugi::node_comment)
+        {
+            pending_comments.emplace_back(child.value());
+            element.remove_child(child);
+        }
+        else if (child.type() == pugi::node_element)
+        {
+            if (std::string(child.name()) == "comment")
+            {
+                SetElementText(child, NormalizeComment(ElementText(child)));
+            }
+            else
+            {
+                RewriteCommentsAsElementsInPlace(child);
+                AppendComments(child, pending_comments);
+                pending_comments.clear();
+            }
+        }
+        child = next;
+    }
+
+    AppendComments(element, pending_comments);
+}
+
 std::optional<std::string> ReadComment(const pugi::xml_node& node)
 {
     const auto comment = node.child("comment");
@@ -280,14 +394,33 @@ std::string ProtocolFile::IncludeDir() const
     return result;
 }
 
+void FlattenChunked(const std::vector<Instruction>& instructions, std::vector<const Instruction*>& result)
+{
+    for (const auto& instruction : instructions)
+    {
+        result.push_back(&instruction);
+        if (instruction.kind == InstructionKind::Chunked)
+        {
+            FlattenChunked(instruction.instructions, result);
+        }
+    }
+}
+
 ProtocolFile LoadProtocolFile(const std::filesystem::path& path, const std::string& relative_dir)
 {
     pugi::xml_document document;
-    const auto parse_result = document.load_file(path.c_str());
+    const auto parse_result = document.load_file(path.c_str(), pugi::parse_default | pugi::parse_comments);
     if (!parse_result)
     {
         throw GeneratorError(path.string() + ": failed to parse XML (" + parse_result.description() + " at offset " +
                              std::to_string(parse_result.offset) + ").");
+    }
+    for (auto top_level : document.children())
+    {
+        if (top_level.type() == pugi::node_element)
+        {
+            RewriteCommentsAsElementsInPlace(top_level);
+        }
     }
 
     const auto root = document.child("protocol");

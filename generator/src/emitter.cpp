@@ -1,11 +1,14 @@
 #include "emitter.hpp"
 
 #include "code_writer.hpp"
+#include "doc_comment.hpp"
 #include "errors.hpp"
 #include "names.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <functional>
+#include <iterator>
 #include <map>
 #include <set>
 
@@ -71,18 +74,6 @@ std::string OffsetExpression(int offset)
         return {};
     }
     return offset > 0 ? " + " + std::to_string(offset) : " - " + std::to_string(-offset);
-}
-
-void FlattenChunked(const std::vector<Instruction>& instructions, std::vector<const Instruction*>& result)
-{
-    for (const auto& instruction : instructions)
-    {
-        result.push_back(&instruction);
-        if (instruction.kind == InstructionKind::Chunked)
-        {
-            FlattenChunked(instruction.instructions, result);
-        }
-    }
 }
 
 void CollectReferencedTypes(const std::vector<Instruction>& instructions, TypeRegistry& types,
@@ -171,6 +162,7 @@ public:
     {
         PrepareScope(instructions);
         GenerateInstructionList(instructions);
+        docs_.AddInstructionNotes(instructions);
     }
 
     const Context& GetContext() const
@@ -190,9 +182,10 @@ public:
             }
         }
 
-        if (comment)
+        docs_.AddParagraph(comment);
+        if (!docs_.Empty())
         {
-            declaration.DocComment(DocText(*comment));
+            declaration.DocComment(docs_.Text());
         }
         const std::string base = packet ? "net::Packet" : "Serializable";
         declaration.Line("class EOLIB_API " + class_name_ + " final : public " + base);
@@ -361,6 +354,7 @@ private:
     std::vector<std::pair<std::string, std::string>> to_string_;
     std::vector<std::string> equals_;
     std::set<std::string> scope_identifiers_;
+    DocComment docs_;
     bool needs_old_writer_length_ = false;
     bool declared_reached_null_optional_ = false;
     bool uses_chunked_ = false;
@@ -471,55 +465,35 @@ private:
         }
     }
 
-    void AddMemberDocs(const Instruction& instruction, const std::vector<std::string>& notes)
+    void AddMemberDocs(const Instruction& instruction, const Type& type, bool array,
+                       const std::optional<std::string>& remarks = std::nullopt)
     {
-        std::string docs = DocText(instruction.comment.value_or(""));
-        if (!notes.empty())
+        DocComment docs;
+        docs.AddParagraph(instruction.comment);
+        docs.AddParagraph(remarks);
+        docs.AddConstraintNotes(instruction, type, array, LengthFieldMax(instruction));
+        if (!docs.Empty())
         {
-            if (!docs.empty())
-            {
-                docs += "\n\n";
-            }
-            docs += "@note";
-            for (const auto& note : notes)
-            {
-                docs += "\n- " + note;
-            }
-        }
-        if (!docs.empty())
-        {
-            members_.DocComment(docs);
+            members_.DocComment(docs.Text());
         }
     }
 
-    std::vector<std::string> MemberNotes(const Instruction& instruction, const Type& type, bool array) const
+    /// Gets the largest length that the length field referenced by an instruction can hold, or nullopt if the length
+    /// doesn't come from an accessible length field.
+    std::optional<long long> LengthFieldMax(const Instruction& instruction) const
     {
-        std::vector<std::string> notes;
-        if (instruction.length)
+        if (!instruction.length)
         {
-            std::string description;
-            const auto length_field = context_.accessible_fields.find(*instruction.length);
-            if (length_field != context_.accessible_fields.end())
-            {
-                description =
-                    std::to_string(MaxValueOf(*length_field->second.type) + length_field->second.offset) + " or less";
-            }
-            else
-            {
-                description = "`" + *instruction.length + "`";
-                if (instruction.padded)
-                {
-                    description += " or less";
-                }
-            }
-            notes.push_back(std::string(array ? "Size" : "Length") + " must be " + description + ".");
+            return std::nullopt;
         }
-        if (type.kind == TypeKind::Integer)
+
+        const auto length_field = context_.accessible_fields.find(*instruction.length);
+        if (length_field == context_.accessible_fields.end())
         {
-            notes.push_back(std::string(array ? "Element value" : "Value") + " range is 0-" +
-                            std::to_string(MaxValueOf(type)) + ".");
+            return std::nullopt;
         }
-        return notes;
+
+        return MaxValueOf(*length_field->second.type) + length_field->second.offset;
     }
 
     // ---- Serialization helpers ----
@@ -835,28 +809,82 @@ private:
 
         CheckUniqueName(*instruction.name);
         field.identifier = MemberIdentifier(*instruction.name);
-        AddMemberDocs(instruction, MemberNotes(instruction, type, false));
 
         if (field.hardcoded)
         {
-            const std::string value = HardcodedValueExpression(type, *instruction.value);
-            const std::string cpp_type = type.kind == TypeKind::String ? "std::string_view" : CppTypeName(type, file_);
-            members_.Line("static constexpr " + cpp_type + " " + field.identifier + " = " + value + ";");
+            const std::string constant_type =
+                type.kind == TypeKind::String ? "std::string_view" : CppTypeName(type, file_);
+            members_.DocComment(instruction.comment ? DocText(*instruction.comment)
+                                                    : "The default value of the `" + field.identifier + "` field.");
+            members_.Line("static constexpr " + constant_type + " " + DefaultConstantName(*instruction.name) + " = " +
+                          HardcodedValueExpression(type, *instruction.value) + ";");
+            members_.Line();
         }
-        else
+
+        std::optional<std::string> remarks;
+        if (field.hardcoded && HasNonZeroDefault(type, *instruction.value))
         {
-            std::string cpp_type = CppTypeName(type, file_);
-            if (instruction.optional)
-            {
-                cpp_type = "std::optional<" + cpp_type + ">";
-            }
-            members_.Line(cpp_type + " " + field.identifier + "{};");
-            equals_.push_back(field.identifier);
-            to_string_.emplace_back(field.identifier, field.identifier);
+            remarks = "A zero value is serialized as `" + DefaultConstantName(*instruction.name) +
+                      "` unless this object was deserialized.";
         }
+        AddMemberDocs(instruction, type, false, remarks);
+
+        std::string cpp_type = CppTypeName(type, file_);
+        if (instruction.optional)
+        {
+            cpp_type = "std::optional<" + cpp_type + ">";
+        }
+        members_.Line(cpp_type + " " + field.identifier + "{};");
+        equals_.push_back(field.identifier);
+        to_string_.emplace_back(field.identifier, field.identifier);
         members_.Line();
         context_.accessible_fields[*instruction.name] = field;
         return field;
+    }
+
+    static std::string DefaultConstantName(const std::string& name)
+    {
+        std::string result = "DEFAULT_";
+        std::transform(name.begin(), name.end(), std::back_inserter(result),
+                       [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+        return result;
+    }
+
+    /// Checks whether a hardcoded value differs from the value of a value-initialized field.
+    static bool HasNonZeroDefault(const Type& type, const std::string& value)
+    {
+        switch (type.kind)
+        {
+            case TypeKind::Integer:
+                return std::stoll(value) != 0;
+            case TypeKind::Bool:
+                return value == "true";
+            default:
+                return !value.empty();
+        }
+    }
+
+    /// Returns the expression for the value of a named hardcoded field to serialize: the field's value, or the default
+    /// value if the field has a zero value and this object was not deserialized.
+    static std::string HardcodedFieldValueExpression(const Instruction& instruction, const Type& type,
+                                                     const std::string& value)
+    {
+        if (!HasNonZeroDefault(type, *instruction.value))
+        {
+            return value;
+        }
+
+        const std::string default_name = DefaultConstantName(*instruction.name);
+        switch (type.kind)
+        {
+            case TypeKind::Integer:
+                return "(" + value + " == 0 && byte_size_ == 0 ? " + default_name + " : " + value + ")";
+            case TypeKind::Bool:
+                return "(!" + value + " && byte_size_ == 0 ? " + default_name + " : " + value + ")";
+            default:
+                return "(" + value + ".empty() && byte_size_ == 0 ? " + default_name + " : std::string_view(" + value +
+                       "))";
+        }
     }
 
     void GenerateSerializeField(const Instruction& instruction, const Type& type, const FieldData& field)
@@ -874,6 +902,10 @@ private:
         else
         {
             value = instruction.optional ? "(*" + field.identifier + ")" : field.identifier;
+            if (field.hardcoded)
+            {
+                value = HardcodedFieldValueExpression(instruction, type, value);
+            }
         }
 
         std::optional<std::string> serialize_length;
@@ -882,7 +914,7 @@ private:
             if (IsInteger(*instruction.length))
             {
                 serialize_length = *instruction.length;
-                if (instruction.name && !field.hardcoded)
+                if (instruction.name)
                 {
                     GenerateSerializeLengthCheck(field.identifier, value + ".size()", *instruction.length,
                                                  instruction.padded);
@@ -909,7 +941,7 @@ private:
         }
 
         const auto deserialize_length = DeserializeLengthExpression(instruction.length);
-        if (!instruction.name || field.hardcoded)
+        if (!instruction.name)
         {
             deserialize_.Line(ReadExpression(type.SerializationType(), deserialize_length, instruction.padded) + ";");
         }
@@ -993,7 +1025,7 @@ private:
         field.array = true;
         field.optional = instruction.optional;
 
-        AddMemberDocs(instruction, MemberNotes(instruction, type, true));
+        AddMemberDocs(instruction, type, true);
         std::string cpp_type = "std::vector<" + CppTypeName(type, file_) + ">";
         if (instruction.optional)
         {
@@ -1298,15 +1330,14 @@ private:
             }
         }
 
-        std::string data_docs = "Data associated with the `" + field.identifier + "` field.";
-        if (instruction.comment)
-        {
-            data_docs += "\n\n" + DocText(*instruction.comment);
-        }
+        DocComment data_docs;
+        data_docs.AddParagraph("Data associated with the `" + field.identifier + "` field.");
+        data_docs.AddParagraph(instruction.comment);
+        data_docs.AddEmptyCaseParagraphs(instruction, field.identifier);
         members_.DocComment("Data associated with different values of the `" + field.identifier + "` field.");
         members_.Line("using " + data_type_name + " = std::variant<" + Join(cases.alternatives, ", ") + ">;");
         members_.Line();
-        members_.DocComment(data_docs);
+        members_.DocComment(data_docs.Text());
         members_.Line(data_type_name + " " + data_field_name + "{};");
         members_.Line();
 
@@ -1416,7 +1447,7 @@ private:
         std::string docs = "Data associated with " + field.identifier + " " + description + ".";
         if (protocol_case.comment)
         {
-            docs += "\n\n" + DocText(*protocol_case.comment);
+            docs += "\n\n" + *protocol_case.comment;
         }
 
         CodeWriter case_declaration;

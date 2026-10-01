@@ -109,6 +109,10 @@ struct ProtocolFile
     std::string IncludeDir() const;
 };
 
+/// Appends pointers to the specified instructions to result, with the contents of chunked sections following each
+/// chunked instruction.
+void FlattenChunked(const std::vector<Instruction>& instructions, std::vector<const Instruction*>& result);
+
 /// Loads all protocol.xml files found (recursively) under the specified root directory, sorted by relative path.
 std::vector<ProtocolFile> LoadProtocolFiles(const std::filesystem::path& xml_root);
 

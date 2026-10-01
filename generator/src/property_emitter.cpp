@@ -212,7 +212,7 @@ private:
             definitions_.Line(keyword + " (" + condition + ")");
             definitions_.Line("{");
             definitions_.Indent();
-            definitions_.Line("// Length and hardcoded fields are not stored in the object.");
+            definitions_.Line("// Length fields are not stored in the object.");
             definitions_.Close();
             keyword = "else if";
         }
@@ -272,11 +272,6 @@ private:
     {
         if (!instruction.name)
         {
-            return;
-        }
-        if (instruction.value)
-        {
-            body.ignored_names.push_back(*instruction.name);
             return;
         }
 

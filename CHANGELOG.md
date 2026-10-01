@@ -8,7 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Named hardcoded fields now generate a `DEFAULT_<FIELD>` class constant with the spec value, e.g. `InitInitClientPacket::DEFAULT_PROTOCOL_VERSION`.
+- XML comments in the protocol files are now generated as documentation comments. Comments on dummies and other instructions without a member are added as `@note` items to the documentation of the containing type, prefixed with a description of the instruction (e.g. "The dummy byte (always 255): …"), and comments in empty switch cases are added to the documentation of the switch data member. Comments on unnamed hardcoded fields are omitted, since those values aren't visible to consumers.
 - Developer documentation for contributors: `docs/architecture.md` describes how the library is organized and how its parts work together, and `docs/generator.md` describes how `eolib-protocol-gen` generates the protocol code.
+
+### Changed
+- Named hardcoded fields are now ordinary data members instead of `static constexpr` constants. They are deserialized, compared and included in `ToString()`, and serialize their value, so deserialized values round-trip exactly and set values are sent. A zero value is serialized as the default value, unless the object was deserialized.
+- Protocol comments that are wrapped across several lines in the XML are joined into one line in the generated documentation comments.
+
+### Updated
+- Pulled in changes for eo-protocol, with impact to generated code:
+- [Name hardcoded client fields verified by the official server](https://github.com/cirras/eo-protocol/commit/8ccc442c1ea448b68caa5dbf561873d226def184)
+- Pulled in changes for eo-captured-packets for test parity with protocol changes.
 
 ## [0.1.0-beta.3] - 2026-09-29
 

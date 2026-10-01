@@ -34,6 +34,7 @@ All of the generator's code is in `generator/src`, in the `eolib::generator` nam
 | `types.hpp/.cpp` | `Type` and `TypeRegistry` |
 | `emitter.hpp/.cpp` | Generates the library code |
 | `property_emitter.hpp/.cpp` | Generates the captured packet test support code |
+| `doc_comment.hpp/.cpp` | `DocComment`, which builds the text of generated documentation comments |
 | `code_writer.hpp` | `CodeWriter`, which builds up generated code line by line |
 | `names.hpp/.cpp` | Naming and escaping helpers |
 | `errors.hpp` | `GeneratorError` |
@@ -133,9 +134,9 @@ After all cases have been generated, the switch adds the `std::variant` type ali
 
 ### Documentation comments
 
-The functions near the top of `emitter.cpp` (`DescribeInstruction`, `InstructionNotes` and `EmptyCaseComments`) build the documentation for comments that don't belong to a member. A comment on a dummy, for example, becomes a note on the class that starts with a description of the dummy ("The dummy byte (always 255): ..."), and comments in empty switch cases are added to the documentation of the switch's data member.
+Documentation comments are built with `DocComment` (in `doc_comment.cpp`). It collects paragraphs and notes, and writes the notes as a `@note` list after the paragraphs. It also builds the documentation for comments that don't belong to a member. A comment on a dummy, for example, becomes a note on the class that starts with a description of the dummy ("The dummy byte (always 255): ..."), and comments in empty switch cases are added to the documentation of the switch's data member.
 
-All text from the XML goes through `DocText` before it's written, which escapes characters that Doxygen would otherwise treat as commands.
+`DocComment` passes all text through `DocText` when it's added, which escapes characters that Doxygen would otherwise treat as commands.
 
 ## Test support code (`property_emitter.cpp`)
 

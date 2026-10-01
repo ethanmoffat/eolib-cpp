@@ -156,6 +156,61 @@ TEST(GeneratedProtocolTest, FixedLengthStringMismatchThrows)
     EXPECT_NO_THROW(packet.Serialize(writer));
 }
 
+TEST(GeneratedProtocolTest, NamedHardcodedField_NewObject_SerializesDefault)
+{
+    static_assert(client::TradeRequestClientPacket::DEFAULT_REQUEST_TYPE == 138);
+    static_assert(client::CharacterRequestClientPacket::DEFAULT_REQUEST_STRING == "NEW");
+
+    client::TradeRequestClientPacket trade;
+    trade.player_id = 7;
+    data::EoWriter expected_trade;
+    expected_trade.AddChar(138);
+    expected_trade.AddShort(7);
+    EXPECT_EQ(SerializeToBytes(trade), expected_trade.ToByteArray());
+
+    const client::CharacterRequestClientPacket character;
+    data::EoWriter expected_character;
+    expected_character.AddString("NEW");
+    expected_character.AddByte(0xFF);
+    EXPECT_EQ(SerializeToBytes(character), expected_character.ToByteArray());
+}
+
+TEST(GeneratedProtocolTest, NamedHardcodedField_SetValue_SerializesValue)
+{
+    client::TradeRequestClientPacket packet;
+    packet.request_type = 5;
+    packet.player_id = 7;
+
+    data::EoWriter expected;
+    expected.AddChar(5);
+    expected.AddShort(7);
+    EXPECT_EQ(SerializeToBytes(packet), expected.ToByteArray());
+}
+
+TEST(GeneratedProtocolTest, NamedHardcodedField_DeserializedZero_RoundTrips)
+{
+    data::EoWriter writer;
+    writer.AddChar(0);
+    writer.AddShort(7);
+    const auto bytes = writer.ToByteArray();
+
+    data::EoReader reader(bytes);
+    client::TradeRequestClientPacket packet;
+    packet.Deserialize(reader);
+
+    EXPECT_EQ(packet.request_type, 0);
+    EXPECT_EQ(SerializeToBytes(packet), bytes);
+}
+
+TEST(GeneratedProtocolTest, NamedHardcodedField_IsComparedAndPrinted)
+{
+    const client::TradeRequestClientPacket a;
+    client::TradeRequestClientPacket b;
+    b.request_type = 138;
+    EXPECT_NE(a, b);
+    EXPECT_EQ(b.ToString(), "TradeRequestClientPacket{request_type=138, player_id=0}");
+}
+
 TEST(GeneratedProtocolTest, PacketFactory)
 {
     const auto packet = client::PacketFactory::Create(PacketFamily::Walk, PacketAction::Player);
