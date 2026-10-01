@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-beta.4] - 2026-10-01
+
 ### Added
 - Named hardcoded fields now generate a `DEFAULT_<FIELD>` class constant with the spec value, e.g. `InitInitClientPacket::DEFAULT_PROTOCOL_VERSION`.
 - XML comments in the protocol files are now generated as documentation comments. Comments on dummies and other instructions without a member are added as `@note` items to the documentation of the containing type, prefixed with a description of the instruction (e.g. "The dummy byte (always 255): …"), and comments in empty switch cases are added to the documentation of the switch data member. Comments on unnamed hardcoded fields are omitted, since those values aren't visible to consumers.
@@ -76,7 +78,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tests for the packets in `eo-captured-packets`, checking byte-exact round trips and the field values of each packet against the captured properties, and pub/map file tests.
 - Documentation: getting started guide.
 
-[Unreleased]: https://github.com/ethanmoffat/eolib-cpp/compare/v0.1.0-beta.3...HEAD
+[Unreleased]: https://github.com/ethanmoffat/eolib-cpp/compare/v0.1.0-beta.4...HEAD
+[0.1.0-beta.4]: https://github.com/ethanmoffat/eolib-cpp/releases/tag/v0.1.0-beta.4
 [0.1.0-beta.3]: https://github.com/ethanmoffat/eolib-cpp/releases/tag/v0.1.0-beta.3
 [0.1.0-beta.2]: https://github.com/ethanmoffat/eolib-cpp/releases/tag/v0.1.0-beta.2
 [0.1.0-beta.1]: https://github.com/ethanmoffat/eolib-cpp/releases/tag/v0.1.0-beta.1

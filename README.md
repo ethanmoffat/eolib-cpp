@@ -41,8 +41,8 @@ Supported platforms are Windows (x64, x86), Linux (glibc and musl) and macOS (ar
 include(FetchContent)
 FetchContent_Declare(
     eolib
-    URL https://github.com/ethanmoffat/eolib-cpp/releases/download/v0.1.0-beta.3/eolib-0.1.0-beta.3-src.tar.gz
-    URL_HASH SHA512=<contents of eolib-0.1.0-beta.3-src.tar.gz.sha512>)
+    URL https://github.com/ethanmoffat/eolib-cpp/releases/download/v0.1.0-beta.4/eolib-0.1.0-beta.4-src.tar.gz
+    URL_HASH SHA512=<contents of eolib-0.1.0-beta.4-src.tar.gz.sha512>)
 FetchContent_MakeAvailable(eolib)
 
 target_link_libraries(my_app PRIVATE eolib::eolib)
