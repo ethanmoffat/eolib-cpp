@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-beta.5] - 2026-10-02
+
 ### Added
 - Generated `For<Case>` static factories on structs and packets with switches, which set the switch field and its data together, e.g. `LoginReplyServerPacket::ForOk(data)` and `LoginReplyServerPacket::ForWrongUser()`. Nested switches are flattened onto the top-level class (`InitInitServerPacket::ForBannedTemporary(data)`), integer cases with data are named after their case class (`ForBanTypeData0(data)`), and default cases take the switch value (`AccountReplyServerPacket::ForReplyCodeDefault(code, data)`, which throws `std::invalid_argument` for values with their own case).
 - Generated `As<Case>()` accessors for switch data, which return a pointer to the case data or `nullptr` if the switch holds data for a different case, e.g. `packet.AsOk()` and `packet.AsBanned()->AsTemporary()`.
@@ -82,7 +84,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tests for the packets in `eo-captured-packets`, checking byte-exact round trips and the field values of each packet against the captured properties, and pub/map file tests.
 - Documentation: getting started guide.
 
-[Unreleased]: https://github.com/ethanmoffat/eolib-cpp/compare/v0.1.0-beta.4...HEAD
+[Unreleased]: https://github.com/ethanmoffat/eolib-cpp/compare/v0.1.0-beta.5...HEAD
+[0.1.0-beta.5]: https://github.com/ethanmoffat/eolib-cpp/releases/tag/v0.1.0-beta.5
 [0.1.0-beta.4]: https://github.com/ethanmoffat/eolib-cpp/releases/tag/v0.1.0-beta.4
 [0.1.0-beta.3]: https://github.com/ethanmoffat/eolib-cpp/releases/tag/v0.1.0-beta.3
 [0.1.0-beta.2]: https://github.com/ethanmoffat/eolib-cpp/releases/tag/v0.1.0-beta.2
