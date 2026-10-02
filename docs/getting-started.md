@@ -101,22 +101,45 @@ void OnPacket(const std::string& payload)
 }
 ```
 
-Switch fields are `std::variant` members named `<field>_data`. Set the alternative that matches the switch field,
-or serialization throws `eolib::SerializationError`:
+Switch fields are `std::variant` members named `<field>_data`. Set the alternative that matches the switch field, or serialization throws `eolib::SerializationError`. The generated `For<Case>` factories set the switch field and its data together:
 
 ```cpp
-server::InitInitServerPacket init;
-init.reply_code = server::InitReply::Ok;
-
 server::InitInitServerPacket::ReplyCodeDataOk ok;
 ok.player_id = 1;
-init.reply_code_data = ok;
+auto init = server::InitInitServerPacket::ForOk(ok);
 
-if (const auto* data = std::get_if<server::InitInitServerPacket::ReplyCodeDataOk>(&init.reply_code_data))
+auto banned = server::InitInitServerPacket::ForBannedPermanent();
+```
+
+There is a factory for each value of the switch field's enum:
+
+| Case | Factory |
+|---|---|
+| A value whose case has data members | `For<Value>(data)`, e.g. `LoginReplyServerPacket::ForOk(data)` |
+| A value whose case has no data members, or that has no case | `For<Value>()`, e.g. `LoginReplyServerPacket::ForWrongUser()` |
+| A value whose case contains another switch | One factory per value of the inner switch, e.g. `InitInitServerPacket::ForBannedTemporary(data)` |
+| An integer case with data | `For<CaseClass>(data)`, e.g. `InitInitServerPacket::ForBanTypeData0(data)` |
+| The default case | `For<Field>Default(code[, data])`, e.g. `AccountReplyServerPacket::ForReplyCodeDefault(code, data)`. Throws `std::invalid_argument` if `code` has its own case |
+
+Integer cases without data don't get a factory, and values that are handled by the default case are created with the default factory.
+
+To read switch data, use the generated `As<Case>()` accessors. They return a pointer to the case data, or `nullptr` if the variant holds the data for a different case, so there is no need to check the switch field as well:
+
+```cpp
+if (const auto* data = init.AsOk())
 {
     // use data->player_id
 }
+else if (const auto* banned = init.AsBanned())
+{
+    if (const auto* temporary = banned->AsTemporary())
+    {
+        // use temporary->minutes_remaining
+    }
+}
 ```
+
+Accessors are named like the factories, but only for one switch: `As<Value>`, `As<CaseClass>` for integer cases and `As<Field>Default` for the default case.
 
 ## Pub and map files
 

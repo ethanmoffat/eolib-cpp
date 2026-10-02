@@ -4,7 +4,9 @@
 #include "names.hpp"
 
 #include <algorithm>
+#include <map>
 #include <set>
+#include <utility>
 
 namespace eolib::generator
 {
@@ -34,11 +36,11 @@ void SwitchGenerator::Generate()
 
     // Switching on an enum with values that are not enumerators triggers -Wswitch, so switch on the integer value
     // instead in that case.
-    const bool integer_switch = field.type->kind == TypeKind::Enum &&
-                                std::any_of(instruction_.cases.begin(), instruction_.cases.end(),
-                                            [](const ProtocolCase& x) { return !x.is_default && IsInteger(*x.value); });
-    const std::string switch_expression =
-        integer_switch ? "static_cast<int>(" + field.identifier + ")" : field.identifier;
+    const bool integer_switch =
+        field.type->kind == TypeKind::Enum &&
+        std::any_of(instruction_.cases.begin(), instruction_.cases.end(),
+                    [&field](const ProtocolCase& x) { return !x.is_default && IsIntegerCase(field, x); });
+    const std::string switch_expression = SwitchExpression(field.identifier, integer_switch);
 
     const bool has_default = ValidateCases(field, integer_switch);
 
@@ -47,6 +49,7 @@ void SwitchGenerator::Generate()
     cases.reached_dummy = context_.reached_dummy;
     cases.reached_unsized_array = context_.reached_unsized_array;
 
+    std::vector<CaseInfo> infos;
     for (const auto& protocol_case : instruction_.cases)
     {
         const std::string label =
@@ -55,11 +58,11 @@ void SwitchGenerator::Generate()
 
         if (protocol_case.instructions.empty())
         {
-            GenerateEmptyCase(field, data_field_name, label, cases);
+            infos.push_back(GenerateEmptyCase(protocol_case, field, data_field_name, label, cases));
         }
         else
         {
-            GenerateDataCase(protocol_case, field, data_field_name, label, cases);
+            infos.push_back(GenerateDataCase(protocol_case, field, data_field_name, label, cases));
         }
     }
 
@@ -84,6 +87,8 @@ void SwitchGenerator::Generate()
     code_.members.DocComment(data_docs.Text());
     code_.members.Line(data_type_name + " " + data_field_name + "{};");
     code_.members.Line();
+    GenerateAccessors(field, data_field_name, infos);
+    GenerateFactories(field, data_field_name, integer_switch, infos);
 
     code_.serialize.Open("switch (" + switch_expression + ")");
     code_.serialize.Append(cases.serialize);
@@ -155,8 +160,9 @@ bool SwitchGenerator::ValidateCases(const FieldData& field, bool integer_switch)
     return reached_default;
 }
 
-void SwitchGenerator::GenerateEmptyCase(const FieldData& field, const std::string& data_field_name,
-                                        const std::string& label, Cases& cases) const
+SwitchGenerator::CaseInfo SwitchGenerator::GenerateEmptyCase(const ProtocolCase& protocol_case, const FieldData& field,
+                                                             const std::string& data_field_name,
+                                                             const std::string& label, Cases& cases) const
 {
     cases.serialize.Line(label);
     cases.serialize.Indent();
@@ -172,10 +178,15 @@ void SwitchGenerator::GenerateEmptyCase(const FieldData& field, const std::strin
     cases.deserialize.Line(data_field_name + " = std::monostate();");
     cases.deserialize.Line("break;");
     cases.deserialize.Dedent();
+
+    CaseInfo info;
+    info.protocol_case = &protocol_case;
+    return info;
 }
 
-void SwitchGenerator::GenerateDataCase(const ProtocolCase& protocol_case, const FieldData& field,
-                                       const std::string& data_field_name, const std::string& label, Cases& cases)
+SwitchGenerator::CaseInfo SwitchGenerator::GenerateDataCase(const ProtocolCase& protocol_case, const FieldData& field,
+                                                            const std::string& data_field_name,
+                                                            const std::string& label, Cases& cases)
 {
     const std::string case_type_name = SwitchCaseTypeName(instruction_.switch_field, protocol_case);
     const std::string description =
@@ -225,6 +236,180 @@ void SwitchGenerator::GenerateDataCase(const ProtocolCase& protocol_case, const 
     cases.deserialize.Line(data_field_name + ".emplace<" + case_type_name + ">().Deserialize(reader);");
     cases.deserialize.Line("break;");
     cases.deserialize.Dedent();
+
+    CaseInfo info;
+    info.protocol_case = &protocol_case;
+    info.type_name = case_type_name;
+    info.value_members = case_generator.GetCode().value_members;
+    info.factories = case_generator.GetCode().factories;
+    return info;
+}
+
+std::string SwitchGenerator::CaseName(const FieldData& field, const CaseInfo& info) const
+{
+    if (info.protocol_case->is_default)
+    {
+        return SnakeCaseToPascalCase(instruction_.switch_field) + "Default";
+    }
+    if (IsIntegerCase(field, *info.protocol_case))
+    {
+        return SwitchCaseTypeName(instruction_.switch_field, *info.protocol_case);
+    }
+    return *info.protocol_case->value;
+}
+
+void SwitchGenerator::GenerateAccessors(const FieldData& field, const std::string& data_field_name,
+                                        const std::vector<CaseInfo>& infos)
+{
+    for (const auto& info : infos)
+    {
+        if (!info.type_name)
+        {
+            continue;
+        }
+
+        const std::string name = "As" + CaseName(field, info);
+        const std::string description =
+            info.protocol_case->is_default
+                ? "the default case of " + field.identifier
+                : field.identifier + " value " + CaseValueDescription(field, *info.protocol_case->value);
+        const std::string docs = "Gets the data associated with " + description +
+                                 ".\n\n@return the data, or nullptr if `" + data_field_name +
+                                 "` holds the data for a different value.";
+        const std::string& type = *info.type_name;
+        for (const std::string qualifier : {"const ", ""})
+        {
+            code_.members.DocComment(docs);
+            code_.members.Open(qualifier + type + "* " + name + "() " + qualifier + "noexcept");
+            code_.members.Line("return std::get_if<" + type + ">(&" + data_field_name + ");");
+            code_.members.Close();
+            code_.members.Line();
+        }
+    }
+}
+
+void SwitchGenerator::GenerateFactories(const FieldData& field, const std::string& data_field_name, bool integer_switch,
+                                        const std::vector<CaseInfo>& infos)
+{
+    const CaseInfo* default_info = nullptr;
+    std::map<std::string, const CaseInfo*> named_infos;
+    std::vector<const CaseInfo*> integer_infos;
+    for (const auto& info : infos)
+    {
+        if (info.protocol_case->is_default)
+        {
+            default_info = &info;
+        }
+        else if (IsIntegerCase(field, *info.protocol_case))
+        {
+            integer_infos.push_back(&info);
+        }
+        else
+        {
+            named_infos[*info.protocol_case->value] = &info;
+        }
+    }
+
+    const auto make_factory = [&](std::string name, bool path_named, std::string code, std::string description)
+    {
+        SwitchFactory factory;
+        factory.name = std::move(name);
+        factory.path_named = path_named;
+        factory.steps.push_back(
+            FactoryStep{field.identifier, std::move(code), std::move(description), data_field_name, std::nullopt});
+        return factory;
+    };
+
+    // Every value of an enum gets a factory, including values without a case of their own. Values without a case are
+    // handled by the default case if there is one, so they're created with the default factory instead.
+    if (field.type->kind == TypeKind::Enum)
+    {
+        for (const auto& enum_value : field.type->enum_definition->values)
+        {
+            const auto it = named_infos.find(enum_value.name);
+            if (it == named_infos.end() && default_info != nullptr)
+            {
+                continue;
+            }
+            const CaseInfo* info = it != named_infos.end() ? it->second : nullptr;
+            AddFactories(make_factory(enum_value.name, true, CaseValueExpression(field, enum_value.name, false),
+                                      "`" + enum_value.name + "`"),
+                         info);
+        }
+    }
+
+    // Integer values without data only set the switch field, so they don't get a factory.
+    for (const CaseInfo* info : integer_infos)
+    {
+        if (info->type_name)
+        {
+            const std::string& value = *info->protocol_case->value;
+            AddFactories(make_factory(CaseName(field, *info), false, CaseValueExpression(field, value, false),
+                                      "`" + value + "`"),
+                         info);
+        }
+    }
+
+    if (default_info != nullptr)
+    {
+        SwitchFactory factory = make_factory(CaseName(field, *default_info), false, "code", "`code`");
+        factory.code_type = CppTypeName(*field.type, &file_);
+        factory.rejected_codes_switch = SwitchExpression("code", integer_switch);
+        for (const auto& info : infos)
+        {
+            if (!info.protocol_case->is_default)
+            {
+                factory.rejected_codes.push_back(
+                    CaseValueExpression(field, *info.protocol_case->value, integer_switch));
+            }
+        }
+        AddFactories(std::move(factory), default_info);
+    }
+}
+
+void SwitchGenerator::AddFactories(SwitchFactory factory, const CaseInfo* info)
+{
+    if (info == nullptr || !info->type_name)
+    {
+        code_.factories.push_back(std::move(factory));
+        return;
+    }
+
+    const std::string& case_type = *info->type_name;
+    factory.steps.front().case_type = case_type;
+    if (info->factories.empty())
+    {
+        if (!info->value_members.empty())
+        {
+            factory.data_type = case_type;
+        }
+        code_.factories.push_back(std::move(factory));
+        return;
+    }
+
+    // The case holds a nested switch, so its factories are lifted into this class.
+    for (const auto& nested : info->factories)
+    {
+        SwitchFactory lifted = factory;
+        lifted.name = nested.path_named ? factory.name + nested.name : nested.name;
+        lifted.path_named = nested.path_named;
+        for (FactoryStep step : nested.steps)
+        {
+            if (step.case_type)
+            {
+                step.case_type = case_type + "::" + *step.case_type;
+            }
+            lifted.steps.push_back(std::move(step));
+        }
+        if (nested.data_type)
+        {
+            lifted.data_type = case_type + "::" + *nested.data_type;
+        }
+        lifted.code_type = nested.code_type;
+        lifted.rejected_codes = nested.rejected_codes;
+        lifted.rejected_codes_switch = nested.rejected_codes_switch;
+        code_.factories.push_back(std::move(lifted));
+    }
 }
 
 std::string SwitchGenerator::CaseValueExpression(const FieldData& field, const std::string& value,
@@ -263,6 +448,16 @@ std::string SwitchGenerator::CaseValueExpression(const FieldData& field, const s
         }
     }
     throw Error("\"" + value + "\" is not a valid value for enum type " + protocol_enum.name);
+}
+
+bool SwitchGenerator::IsIntegerCase(const FieldData& field, const ProtocolCase& protocol_case)
+{
+    return field.type->kind == TypeKind::Integer || IsInteger(*protocol_case.value);
+}
+
+std::string SwitchGenerator::SwitchExpression(const std::string& value, bool integer_switch)
+{
+    return integer_switch ? "static_cast<int>(" + value + ")" : value;
 }
 
 std::string SwitchGenerator::CaseValueDescription(const FieldData& field, const std::string& value)

@@ -33,6 +33,11 @@ const Context& ObjectGenerator::GetContext() const
     return context_;
 }
 
+const ObjectCode& ObjectGenerator::GetCode() const
+{
+    return code_;
+}
+
 void ObjectGenerator::Finish(const std::optional<std::string>& comment, const std::optional<PacketInfo>& packet,
                              CodeWriter& declaration, CodeWriter& definitions)
 {
@@ -47,6 +52,10 @@ void ObjectGenerator::Finish(const std::optional<std::string>& comment, const st
     WriteDeclaration(comment, packet, declaration);
 
     definitions.Append(code_.nested_definitions);
+    if (IsTopLevel())
+    {
+        WriteFactoryDefinitions(definitions);
+    }
     WriteSerializationDefinitions(definitions);
     WriteToStringDefinition(definitions);
     WriteEqualityDefinitions(definitions);
@@ -684,6 +693,12 @@ void ObjectGenerator::GenerateDummy(const Instruction& instruction)
 
 void ObjectGenerator::GenerateSwitch(const Instruction& instruction)
 {
+    if (code_.switch_field)
+    {
+        throw Error("Switch case factories don't support multiple switches in one scope (switches on " +
+                    *code_.switch_field + " and " + instruction.switch_field + ").");
+    }
+    code_.switch_field = instruction.switch_field;
     SwitchGenerator(types_, file_, qualified_name_, instruction, context_, code_).Generate();
 }
 
@@ -757,6 +772,11 @@ void ObjectGenerator::WriteDeclaration(const std::optional<std::string>& comment
         declaration.Line();
     }
 
+    if (IsTopLevel())
+    {
+        WriteFactoryDeclarations(declaration);
+    }
+
     if (packet)
     {
         declaration.DocComment("Gets the packet family associated with this packet.\n\n@return the packet family.");
@@ -806,6 +826,117 @@ void ObjectGenerator::WriteDeclaration(const std::optional<std::string>& comment
     declaration.Line("int byte_size_ = 0;");
     declaration.Dedent();
     declaration.Line("};");
+}
+
+bool ObjectGenerator::IsTopLevel() const
+{
+    // Switch cases are nested in their enclosing class, so their qualified name includes the enclosing class name.
+    return qualified_name_ == class_name_;
+}
+
+std::string ObjectGenerator::FactoryParameters(const SwitchFactory& factory)
+{
+    std::vector<std::string> parameters;
+    if (factory.code_type)
+    {
+        parameters.push_back(*factory.code_type + " code");
+    }
+    if (factory.data_type)
+    {
+        parameters.push_back(*factory.data_type + " data");
+    }
+    return Join(parameters, ", ");
+}
+
+void ObjectGenerator::WriteFactoryDeclarations(CodeWriter& declaration) const
+{
+    for (const auto& factory : code_.factories)
+    {
+        std::vector<std::string> settings;
+        for (const auto& step : factory.steps)
+        {
+            settings.push_back("`" + step.field + "` set to " + step.description);
+        }
+
+        const FactoryStep& last = factory.steps.back();
+        std::string docs = "Creates a new " + class_name_ + " with " + Join(settings, " and ") + ".\n\n";
+        if (factory.code_type)
+        {
+            docs += "@param code the value of `" + last.field + "`, which must not be a value with its own case.\n";
+        }
+        if (factory.data_type)
+        {
+            docs += factory.code_type
+                        ? "@param data the data for the default case.\n"
+                        : "@param data the data associated with `" + last.field + "` " + last.description + ".\n";
+        }
+        docs += "@return the created object.";
+        if (factory.code_type)
+        {
+            docs += "\n@throws std::invalid_argument if `code` is a value with its own case.";
+        }
+
+        declaration.DocComment(docs);
+        declaration.Line("static " + class_name_ + " For" + factory.name + "(" + FactoryParameters(factory) + ");");
+        declaration.Line();
+    }
+}
+
+void ObjectGenerator::WriteFactoryDefinitions(CodeWriter& definitions) const
+{
+    for (const auto& factory : code_.factories)
+    {
+        definitions.Open(qualified_name_ + " " + qualified_name_ + "::For" + factory.name + "(" +
+                         FactoryParameters(factory) + ")");
+        if (factory.code_type)
+        {
+            definitions.Open("switch (" + factory.rejected_codes_switch + ")");
+            for (const auto& rejected : factory.rejected_codes)
+            {
+                definitions.Line("case " + rejected + ":");
+            }
+            if (!factory.rejected_codes.empty())
+            {
+                definitions.Indent();
+                definitions.Line("throw std::invalid_argument(\"Expected code to be a value without its own case, but "
+                                 "got \" + detail::FormatValue(code) + \".\");");
+                definitions.Dedent();
+            }
+            definitions.Line("default:");
+            definitions.Indent();
+            definitions.Line("break;");
+            definitions.Dedent();
+            definitions.Close();
+            definitions.Line();
+        }
+
+        definitions.Line(qualified_name_ + " result;");
+        std::string target = "result";
+        for (std::size_t i = 0; i < factory.steps.size(); ++i)
+        {
+            const FactoryStep& step = factory.steps[i];
+            definitions.Line(target + "." + step.field + " = " + step.code + ";");
+            if (!step.case_type)
+            {
+                continue;
+            }
+
+            const std::string emplace = target + "." + step.data_member + ".emplace<" + *step.case_type + ">";
+            if (i + 1 < factory.steps.size())
+            {
+                const std::string next = "case_data_" + std::to_string(i);
+                definitions.Line("auto& " + next + " = " + emplace + "();");
+                target = next;
+            }
+            else
+            {
+                definitions.Line(emplace + (factory.data_type ? "(std::move(data));" : "();"));
+            }
+        }
+        definitions.Line("return result;");
+        definitions.Close();
+        definitions.Line();
+    }
 }
 
 void ObjectGenerator::WriteSerializationDefinitions(CodeWriter& definitions) const

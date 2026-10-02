@@ -150,7 +150,7 @@ Some XML elements don't map directly to a field:
 - Unnamed hardcoded fields (a field with a value but no name) have no member. The value is always written, and skipped when reading.
 - Named hardcoded fields have a member and a `DEFAULT_<NAME>` constant. A zero (or empty) value is written as the default, unless the object was deserialized, so a new object sends the expected value and a received object round-trips exactly.
 - `<dummy>` elements have no member. They're only written when the object would otherwise be empty.
-- `<switch>` elements generate a nested class for each case that has data, and a `std::variant` member named `<field>_data` that holds one of them. `std::monostate` is used for cases without data.
+- `<switch>` elements generate a nested class for each case that has data, and a `std::variant` member named `<field>_data` that holds one of them. `std::monostate` is used for cases without data. Each case class gets `As<Case>()` accessors that return a pointer to the data, or `nullptr`. Top-level structs and packets get static `For<Case>()` factories that set the switch field and the data together, including the fields and data of nested switches.
 - Comments in the XML become Doxygen comments on the generated type or member. Comments on elements without a member (such as dummies and break bytes) are added as notes on the containing type.
 
 ### Packet factory

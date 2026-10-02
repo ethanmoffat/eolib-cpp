@@ -116,7 +116,7 @@ void ProtocolGenerator::GenerateObjectFiles(const ProtocolFile& file, const std:
 
     GeneratedFile source("src/" + file.IncludePath(name + ".cpp"), GeneratedFile::Kind::Source);
     source.Includes({file.IncludePath(name + ".hpp"), "eolib/errors.hpp", "eolib/protocol/detail/serialization.hpp"},
-                    {"cstddef", "string", "variant"});
+                    {"cstddef", "stdexcept", "string", "utility", "variant"});
     source.BeginNamespace(file.Namespace());
 
     for (const auto& object : objects)

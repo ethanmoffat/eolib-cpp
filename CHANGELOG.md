@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Generated `For<Case>` static factories on structs and packets with switches, which set the switch field and its data together, e.g. `LoginReplyServerPacket::ForOk(data)` and `LoginReplyServerPacket::ForWrongUser()`. Nested switches are flattened onto the top-level class (`InitInitServerPacket::ForBannedTemporary(data)`), integer cases with data are named after their case class (`ForBanTypeData0(data)`), and default cases take the switch value (`AccountReplyServerPacket::ForReplyCodeDefault(code, data)`, which throws `std::invalid_argument` for values with their own case).
+- Generated `As<Case>()` accessors for switch data, which return a pointer to the case data or `nullptr` if the switch holds data for a different case, e.g. `packet.AsOk()` and `packet.AsBanned()->AsTemporary()`.
+
 ## [0.1.0-beta.4] - 2026-10-01
 
 ### Added

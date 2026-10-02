@@ -146,7 +146,11 @@ Finally, `Finish` checks that every length field was used by another field, then
 - A case with no instructions only adds `case` labels to the serialize and deserialize code.
 - A case with instructions gets a new `ObjectGenerator` for a nested class (for example `ReplyCodeDataOk`). The new generator starts with a copy of the parent's `Context` flags and generates its own instructions. Its `Finish` output is added to the parent's members, and its flags are merged back into the parent's `Context` afterwards.
 
-After all cases have been generated, the switch adds the `std::variant` type alias and the `<field>_data` member, with `std::monostate` as the first alternative.
+After all cases have been generated, the switch adds the `std::variant` type alias and the `<field>_data` member, with `std::monostate` as the first alternative. It then adds the `As<Case>()` accessors after the member, and records the factories for the switch in `ObjectCode::factories`.
+
+A factory is described by a `SwitchFactory`: its name, the type of its data parameter (if any) and a list of `FactoryStep`s, one for each switch it sets. There is one factory for each value of the switch field's enum, then one for each integer case with data and one for the default case. Values without a case of their own are skipped if there is a default case, and integer cases without data are skipped.
+
+When a case contains a switch, its `ObjectGenerator` records factories for that switch, relative to the case class. `SwitchGenerator::AddFactories` lifts them into the enclosing class: it adds a step for the outer switch at the front, qualifies the case class names with the outer case class, and prefixes names made from enum values with the outer value name (`Banned` + `Temporary` becomes `ForBannedTemporary`). Only top-level classes write their factories, so a nested switch is only reachable from the outermost class. Generation fails if a class (including the sections of a `<chunked>` element) has more than one switch.
 
 ### Documentation comments
 

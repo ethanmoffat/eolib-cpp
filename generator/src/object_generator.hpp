@@ -53,6 +53,43 @@ struct PacketInfo
     std::string action;
 };
 
+/// A switch set by a switch case factory: the value of its field, and the data for the case.
+struct FactoryStep
+{
+    /// The identifier of the switch field.
+    std::string field;
+    /// The expression for the value of the switch field. "code" for the code parameter of a default factory.
+    std::string code;
+    /// A description of the value, for documentation.
+    std::string description;
+    /// The identifier of the switch data member.
+    std::string data_member;
+    /// The case class to emplace in the data member, relative to the class that owns the factory. nullopt if the case
+    /// has no data class.
+    std::optional<std::string> case_type;
+};
+
+/// A static factory that creates a class for one value of a switch field (or nested switch fields).
+struct SwitchFactory
+{
+    /// The name of the factory without the "For" prefix, e.g. "Ok" or "BanTypeData0".
+    std::string name;
+    /// Whether the name is a path of enum value names, which is prefixed with the enclosing value name when the
+    /// factory is lifted out of a nested switch. Other names are case class names, which are already unique.
+    bool path_named = true;
+    /// The switches set by the factory, from the outermost to the innermost.
+    std::vector<FactoryStep> steps;
+    /// The type of the data parameter, relative to the class that owns the factory. nullopt if the case data has no
+    /// members to provide.
+    std::optional<std::string> data_type;
+    /// The type of the code parameter, for the default case.
+    std::optional<std::string> code_type;
+    /// For the default case: the case values that the code parameter must not be, as switch case labels.
+    std::vector<std::string> rejected_codes;
+    /// For the default case: the expression that is switched on to reject the case values.
+    std::string rejected_codes_switch;
+};
+
 /// The code generated for the members of a class, built up as its instructions are generated.
 struct ObjectCode
 {
@@ -66,6 +103,10 @@ struct ObjectCode
     CodeWriter deserialize;
     /// Identifiers of the data members, which are compared by operator== and included in ToString.
     std::vector<std::string> value_members;
+    /// Factories for the values of the switches in the class, relative to the class.
+    std::vector<SwitchFactory> factories;
+    /// The field of the switch in the class, if any. Switch case factories support one switch per class.
+    std::optional<std::string> switch_field;
 };
 
 /// Generates a single class (struct, packet or switch case). Follows the semantics of eolib-java's
@@ -85,7 +126,11 @@ public:
     /// Gets the state after the instructions that have been generated.
     const Context& GetContext() const;
 
-    /// Writes the class declaration, and the out-of-line member definitions.
+    /// Gets the code generated for the instructions so far.
+    const ObjectCode& GetCode() const;
+
+    /// Writes the class declaration, and the out-of-line member definitions. A top-level class (one whose qualified
+    /// name is its class name) also gets the switch case factories.
     /// @throws GeneratorError if a length field is not referenced by another field.
     void Finish(const std::optional<std::string>& comment, const std::optional<PacketInfo>& packet,
                 CodeWriter& declaration, CodeWriter& definitions);
@@ -163,6 +208,10 @@ private:
 
     void WriteDeclaration(const std::optional<std::string>& comment, const std::optional<PacketInfo>& packet,
                           CodeWriter& declaration);
+    bool IsTopLevel() const;
+    static std::string FactoryParameters(const SwitchFactory& factory);
+    void WriteFactoryDeclarations(CodeWriter& declaration) const;
+    void WriteFactoryDefinitions(CodeWriter& definitions) const;
     void WriteSerializationDefinitions(CodeWriter& definitions) const;
     void WriteToStringDefinition(CodeWriter& definitions) const;
     void WriteEqualityDefinitions(CodeWriter& definitions) const;
